@@ -1,41 +1,84 @@
-# Mumii - Food Discovery & Social Platform
+<h1 align="center">MUMII_MICROSERVICES_BE</h1>
 
-> Nền tảng khám phá ẩm thực và chia sẻ trải nghiệm với kiến trúc microservices hiện đại
+<p align="center"><em>Building Scalable Food Discovery Platform with Modern Architecture</em></p>
 
-[![.NET](https://img.shields.io/badge/.NET-8.0-512BD4?style=for-the-badge&logo=dotnet)](https://dotnet.microsoft.com/)
-[![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?style=for-the-badge&logo=mysql&logoColor=white)](https://www.mysql.com/)
-[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
-[![RabbitMQ](https://img.shields.io/badge/RabbitMQ-FF6600?style=for-the-badge&logo=rabbitmq&logoColor=white)](https://www.rabbitmq.com/)
+<p align="center">
+  <img src="https://img.shields.io/github/last-commit/your-username/mumii-microservices?style=flat&label=last%20commit" alt="Last Commit" />
+  <img src="https://img.shields.io/badge/C%23-95.0%25-blue?style=flat&logo=csharp&logoColor=white" alt="C# 95%" />
+  <img src="https://img.shields.io/github/languages/count/your-username/mumii-microservices?style=flat&label=languages" alt="Languages Count" />
+  <img src="https://img.shields.io/badge/Microservices-4-green?style=flat" alt="Microservices Count" />
+</p>
 
-## Mục lục
-- [Giới thiệu](#giới-thiệu)
-- [Kiến trúc](#kiến-trúc)
-- [Cài đặt nhanh](#cài-đặt-nhanh)
+<p align="center"><em>Built with enterprise-grade tools and technologies:</em></p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/.NET-8.0-512BD4?style=flat&logo=dotnet&logoColor=white" alt=".NET 8" />
+  <img src="https://img.shields.io/badge/C%23-239120?style=flat&logo=csharp&logoColor=white" alt="C#" />
+  <img src="https://img.shields.io/badge/MySQL-8.0-4479A1?style=flat&logo=mysql&logoColor=white" alt="MySQL" />
+  <img src="https://img.shields.io/badge/Entity%20Framework-512BD4?style=flat&logo=dotnet&logoColor=white" alt="Entity Framework" />
+  <img src="https://img.shields.io/badge/Docker-2496ED?style=flat&logo=docker&logoColor=white" alt="Docker" />
+  <img src="https://img.shields.io/badge/YARP-512BD4?style=flat&logo=dotnet&logoColor=white" alt="YARP" />
+  <img src="https://img.shields.io/badge/RabbitMQ-FF6600?style=flat&logo=rabbitmq&logoColor=white" alt="RabbitMQ" />
+  <img src="https://img.shields.io/badge/Redis-DC382D?style=flat&logo=redis&logoColor=white" alt="Redis" />
+  <img src="https://img.shields.io/badge/JWT-000000?style=flat&logo=jsonwebtokens&logoColor=white" alt="JWT" />
+  <img src="https://img.shields.io/badge/Swagger-85EA2D?style=flat&logo=swagger&logoColor=black" alt="Swagger" />
+  <img src="https://img.shields.io/badge/Serilog-1C1C1C?style=flat&logo=serilog&logoColor=white" alt="Serilog" />
+  <img src="https://img.shields.io/badge/Gemini%20AI-4285F4?style=flat&logo=google&logoColor=white" alt="Gemini AI" />
+</p>
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Features](#features)
+- [Architecture](#architecture)
+- [Quick Start](#quick-start)
 - [API Documentation](#api-documentation)
 - [Database Schema](#database-schema)
 - [Development](#development)
 - [Monitoring](#monitoring)
 - [Contributing](#contributing)
+- [License](#license)
 
 ---
 
-## Giới thiệu
+## Overview
 
-**Mumii** là nền tảng khám phá ẩm thực kết hợp mạng xã hội, giúp người dùng:
+**Mumii** is a modern food discovery and social platform built with microservices architecture, empowering users to explore culinary experiences through intelligent recommendations and community sharing.
 
-- **Khám phá nhà hàng** theo vị trí và sở thích
-- **Chia sẻ trải nghiệm** ăn uống với mood cảm xúc
-- **Gợi ý thông minh** "Hôm nay ăn gì?" (coming soon)
-- **Kết nối cộng đồng** yêu thích ẩm thực
+### Key Capabilities
+- **Restaurant Discovery**: Location-based search with advanced filtering
+- **Social Sharing**: Mood-driven food posts with community engagement  
+- **AI-Powered Suggestions**: Gemini AI integration for personalized recommendations
+- **Real-time Interactions**: Comments, reactions, and social features
 
-### **Tech Stack**
-- **Backend**: .NET 8, Entity Framework Core, MySQL
-- **Authentication**: JWT Bearer Token
-- **Messaging**: RabbitMQ
-- **Cache**: Redis
-- **API Gateway**: YARP (Yet Another Reverse Proxy)
-- **Containerization**: Docker & Docker Compose
-- **Frontend**: Flutter (planned)
+## Features
+
+### Core Services
+- **Authentication Service**: JWT-based security with role management
+- **Discovery Service**: Restaurant search, location services, and ratings
+- **Social Service**: Posts, comments, reactions with mood tracking
+- **AI Service**: Gemini AI chat for food recommendations and image analysis
+
+### Technical Features
+- **Microservices Architecture**: Clean separation of concerns
+- **API-First Design**: Comprehensive OpenAPI/Swagger documentation
+- **Event-Driven**: Asynchronous messaging with RabbitMQ
+- **Containerized**: Docker & Docker Compose for easy deployment
+- **Scalable**: Designed for horizontal scaling and high availability
+
+### Tech Stack
+```
+Backend:      .NET 8, ASP.NET Core, Entity Framework Core
+Database:     MySQL 8.0 with JSON support
+Authentication: JWT Bearer Token with RS256
+Messaging:    RabbitMQ for event-driven communication
+Caching:      Redis for performance optimization
+API Gateway:  YARP (Yet Another Reverse Proxy)
+AI Integration: Google Gemini AI for intelligent features
+Containerization: Docker & Docker Compose
+Monitoring:   Serilog structured logging
+Documentation: OpenAPI/Swagger specifications
+```
 
 ---
 
@@ -355,7 +398,7 @@ dotnet test src/Services/Auth/Mumii.Auth.Tests/
 #### **Auth Service**
 ```env
 ConnectionStrings__DefaultConnection=Server=localhost;Database=mumii_auth;Uid=root;Pwd=mumii2024;
-Jwt__Key=MumiiSecretKey123456789012345678901234567890
+JWT_SECRET_KEY=your_jwt_secret_key_here
 Jwt__Issuer=Mumii
 Jwt__Audience=Mumii.Client
 Jwt__ExpiryHours=24
