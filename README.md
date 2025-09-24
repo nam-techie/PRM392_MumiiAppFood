@@ -1,11 +1,11 @@
-<h1 align="center">MUMII_MICROSERVICES_BE</h1>
+<h1 align="center" id="top">MUMII_MICROSERVICES_BE</h1>
 
 <p align="center"><em>Building Scalable Food Discovery Platform with Modern Architecture</em></p>
 
 <p align="center">
-  <img src="https://img.shields.io/github/last-commit/your-username/mumii-microservices?style=flat&label=last%20commit" alt="Last Commit" />
+  <img src="https://img.shields.io/badge/last%20commit-local-lightgrey?style=flat" alt="Last Commit (local)" />
   <img src="https://img.shields.io/badge/C%23-95.0%25-blue?style=flat&logo=csharp&logoColor=white" alt="C# 95%" />
-  <img src="https://img.shields.io/github/languages/count/your-username/mumii-microservices?style=flat&label=languages" alt="Languages Count" />
+  <img src="https://img.shields.io/badge/languages-1-blue?style=flat" alt="Languages Count" />
   <img src="https://img.shields.io/badge/Microservices-4-green?style=flat" alt="Microservices Count" />
 </p>
 
@@ -82,7 +82,7 @@ Documentation: OpenAPI/Swagger specifications
 
 ---
 
-## Kiến trúc
+## Architecture
 
 ```
 Mumii Microservices Architecture
@@ -116,9 +116,9 @@ Redis (caching)
 
 ---
 
-## Cài đặt nhanh
+## Quick Start
 
-### **Yêu cầu hệ thống**
+### **Requirements**
 - Docker & Docker Compose
 - .NET 8 SDK (optional, cho development)
 - Git
@@ -129,7 +129,7 @@ git clone https://github.com/your-username/mumii-microservices.git
 cd mumii-microservices
 ```
 
-### **2. Khởi động Infrastructure**
+### **2. Start Infrastructure**
 ```bash
 # Khởi động database và message queue
 docker-compose up -d mysql rabbitmq redis
@@ -138,7 +138,7 @@ docker-compose up -d mysql rabbitmq redis
 docker logs mumii-mysql -f
 ```
 
-### **3. Khởi động Services**
+### **3. Start Services**
 
 #### **Option A: Docker Compose (Recommended)**
 ```bash
@@ -168,7 +168,7 @@ cd src/ApiGateway
 dotnet run
 ```
 
-### **4. Kiểm tra Services**
+### **4. Verify Services**
 ```bash
 # Health checks
 curl http://localhost:8080/health        # API Gateway
@@ -557,6 +557,6 @@ Dự án này sử dụng MIT License. Xem file [LICENSE](LICENSE) để biết 
 
 Made with love by **Mumii Team**
 
-[Back to top](#mumii---food-discovery--social-platform)
+[Back to top](#top)
 
 </div>
