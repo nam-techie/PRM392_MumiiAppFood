@@ -130,6 +130,18 @@ cd mumii-microservices
 ```
 
 ### **2. Start Infrastructure**
+
+#### **Option A: SQLite (Recommended for Development)**
+```bash
+# Không cần Docker! Chạy ngay lập tức
+# Windows
+.\scripts\run-sqlite.ps1
+
+# Linux/Mac
+./scripts/run-sqlite.sh
+```
+
+#### **Option B: MySQL (Production-like)**
 ```bash
 # Khởi động database và message queue
 docker-compose up -d mysql rabbitmq redis

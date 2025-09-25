@@ -1,0 +1,158 @@
+version: '3.8'
+
+services:
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
+    container_name: mumii-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: mumii2024
+      MYSQL_DATABASE: mumii_auth
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./scripts:/docker-entrypoint-initdb.d
+    networks:
+      - mumii-network
+    restart: unless-stopped
+    command: --default-authentication-plugin=mysql_native_password
+
+  # RabbitMQ Message Broker
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: mumii-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: mumii2024
+    ports:
+      - "5672:5672"    # AMQP port
+      - "15672:15672"  # Management UI
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - mumii-network
+    restart: unless-stopped
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: mumii-redis
+    command: redis-server --appendonly yes --requirepass mumii2024
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - mumii-network
+    restart: unless-stopped
+
+  # API Gateway
+  gateway:
+    build:
+      context: .
+      dockerfile: src/ApiGateway/Dockerfile
+    container_name: mumii-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+    depends_on:
+      - auth-service
+      - discovery-service
+      - social-service
+    networks:
+      - mumii-network
+    restart: unless-stopped
+
+  # Auth Service
+  auth-service:
+    build:
+      context: .
+      dockerfile: src/Services/Auth/Mumii.Auth.Api/Dockerfile
+    container_name: mumii-auth-service
+    ports:
+      - "8081:8081"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8081
+      - ConnectionStrings__DefaultConnection=Server=mysql;Database=mumii_auth;Uid=root;Pwd=mumii2024;
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - Jwt__Issuer=${JWT_ISSUER}
+      - Jwt__Audience=${JWT_AUDIENCE}
+      - Jwt__ExpiryHours=${JWT_EXPIRY_HOURS}
+    depends_on:
+      - mysql
+      - rabbitmq
+    networks:
+      - mumii-network
+    restart: unless-stopped
+
+  # Discovery Service
+  discovery-service:
+    build:
+      context: .
+      dockerfile: src/Services/Discovery/Mumii.Discovery.Api/Dockerfile
+    container_name: mumii-discovery-service
+    ports:
+      - "8082:8082"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8082
+      - ConnectionStrings__DefaultConnection=Server=mysql;Database=mumii_discovery;Uid=root;Pwd=mumii2024;
+    depends_on:
+      - mysql
+      - rabbitmq
+    networks:
+      - mumii-network
+    restart: unless-stopped
+
+  # Social Service
+  social-service:
+    build:
+      context: .
+      dockerfile: src/Services/Social/Mumii.Social.Api/Dockerfile
+    container_name: mumii-social-service
+    ports:
+      - "8083:8083"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8083
+      - ConnectionStrings__DefaultConnection=Server=mysql;Database=mumii_social;Uid=root;Pwd=mumii2024;
+    depends_on:
+      - mysql
+      - rabbitmq
+    networks:
+      - mumii-network
+    restart: unless-stopped
+
+  # AI Service
+  ai-service:
+    build:
+      context: .
+      dockerfile: src/Services/AI/Mumii.AI.Api/Dockerfile
+    container_name: mumii-ai-service
+    ports:
+      - "8084:8084"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8084
+      - Gemini__ApiKey=${GEMINI_API_KEY}
+    networks:
+      - mumii-network
+    restart: unless-stopped
+
+# Named volumes
+volumes:
+  mysql_data:
+    driver: local
+  rabbitmq_data:
+    driver: local
+  redis_data:
+    driver: local
+
+# Custom network
+networks:
+  mumii-network:
+    driver: bridge
