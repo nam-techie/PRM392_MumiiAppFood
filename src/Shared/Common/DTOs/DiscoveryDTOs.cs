@@ -63,8 +63,7 @@ public record CreateRestaurantRequest(
     double? Latitude,
     double? Longitude,
     string? Description,
-    double? AvgPrice,
-    List<string> ImageUrls
+    double? AvgPrice
 );
 
 /// <summary>
@@ -108,14 +107,12 @@ public record AddRestaurantImageRequest(
 /// </summary>
 public record SearchRestaurantsQuery(
     string? Query,
-    string? Region,
     decimal? Latitude,
     decimal? Longitude,
     decimal? RadiusKm,
     decimal? MinPrice,
     decimal? MaxPrice,
     decimal? MinRating,
-    List<string>? Tags,
     int Page = 1,
     int PageSize = 20
 );

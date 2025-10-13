@@ -32,8 +32,10 @@ public static class DependencyInjection
             options.UseSqlite(connectionString);
         });
 
-        // Repositories
+        // Repositories (Mongo)
         services.AddScoped<IRestaurantRepository, RestaurantRepository>();
+        services.AddScoped<IReviewRepository, ReviewRepository>();
+        services.AddScoped<IFavoriteRepository, FavoriteRepository>();
 
         return services;
     }

@@ -66,7 +66,7 @@ public class RestaurantsController : ControllerBase
     /// </summary>
     [HttpGet("{id}")]
     public async Task<ActionResult<ApiResponse<RestaurantDto>>> GetRestaurant(
-        string id,
+        int id,
         CancellationToken cancellationToken)
     {
         try
@@ -232,7 +232,7 @@ public class RestaurantsController : ControllerBase
     /// </summary>
     [HttpPut("{id}")]
     public async Task<ActionResult<ApiResponse<RestaurantDto>>> UpdateRestaurant(
-        string id,
+        int id,
         [FromBody] UpdateRestaurantRequest request,
         CancellationToken cancellationToken)
     {
@@ -251,11 +251,10 @@ public class RestaurantsController : ControllerBase
                 address: request.Address,
                 latitude: request.Latitude,
                 longitude: request.Longitude,
-                region: request.Region,
-                avgPrice: request.AvgPrice,
                 description: request.Description,
-                imageUrls: request.ImageUrls,
-                tags: request.Tags
+                avgPrice: request.AvgPrice,
+                rating: null,
+                status: request.Status
             );
 
             await _restaurantRepository.UpdateAsync(restaurant, cancellationToken);
@@ -284,7 +283,7 @@ public class RestaurantsController : ControllerBase
     /// </summary>
     [HttpDelete("{id}")]
     public async Task<ActionResult<ApiResponse>> DeleteRestaurant(
-        string id,
+        int id,
         CancellationToken cancellationToken)
     {
         try
@@ -319,17 +318,19 @@ public class RestaurantsController : ControllerBase
     {
         return new RestaurantDto(
             Id: restaurant.Id,
+            PartnerId: restaurant.PartnerId,
             Name: restaurant.Name,
             Address: restaurant.Address,
-            Latitude: restaurant.Latitude,
             Longitude: restaurant.Longitude,
-            Region: restaurant.Region,
+            Latitude: restaurant.Latitude,
+            Description: restaurant.Description,
             AvgPrice: restaurant.AvgPrice,
             Rating: restaurant.Rating,
-            Description: restaurant.Description,
-            ImageUrls: restaurant.ImageUrls,
-            Tags: restaurant.Tags,
-            CreatedAt: restaurant.CreatedAt
+            Status: restaurant.Status,
+            CreatedAt: restaurant.CreatedAt,
+            Images: new List<RestaurantImageDto>(),
+            Reviews: new List<ReviewDto>(),
+            FavoriteCount: 0
         );
     }
 }

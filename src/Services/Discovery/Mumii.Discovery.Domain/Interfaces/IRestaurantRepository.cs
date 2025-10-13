@@ -11,7 +11,7 @@ public interface IRestaurantRepository
     /// <summary>
     /// Tìm nhà hàng theo ID
     /// </summary>
-    Task<Restaurant?> GetByIdAsync(string id, CancellationToken cancellationToken = default);
+    Task<Restaurant?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Lấy danh sách nhà hàng có phân trang
@@ -48,12 +48,12 @@ public interface IRestaurantRepository
     /// <summary>
     /// Xóa nhà hàng (soft delete)
     /// </summary>
-    Task DeleteAsync(string id, CancellationToken cancellationToken = default);
+    Task DeleteAsync(int id, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Kiểm tra nhà hàng có tồn tại không
     /// </summary>
-    Task<bool> ExistsAsync(string id, CancellationToken cancellationToken = default);
+    Task<bool> ExistsAsync(int id, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Lưu thay đổi
