@@ -1,0 +1,13 @@
+[phases.setup]
+nixPkgs = ["dotnet-sdk_8", "icu"]
+
+[phases.build]
+cmds = [
+  "dotnet restore Mumii.Microservices.sln",
+  "dotnet publish src/ApiGateway/Mumii.ApiGateway.csproj -c Release -o /app/out"
+]
+
+[start]
+cmd = "bash ./start.sh"
+
+
