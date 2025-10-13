@@ -3,24 +3,27 @@ using Mumii.Shared.Common.Events;
 namespace Mumii.Discovery.Domain.Entities;
 
 /// <summary>
-/// Entity nhà hàng
+/// Entity nhà hàng theo schema mới
 /// </summary>
 public class Restaurant
 {
-    public string Id { get; private set; } = Guid.NewGuid().ToString();
+    public int Id { get; private set; }
+    public int PartnerId { get; private set; }
     public string Name { get; private set; } = string.Empty;
     public string Address { get; private set; } = string.Empty;
-    public decimal? Latitude { get; private set; }
-    public decimal? Longitude { get; private set; }
-    public string? Region { get; private set; }
-    public decimal? AvgPrice { get; private set; }
-    public decimal Rating { get; private set; } = 0;
+    public double? Longitude { get; private set; }
+    public double? Latitude { get; private set; }
     public string? Description { get; private set; }
-    public List<string> ImageUrls { get; private set; } = new();
-    public List<string> Tags { get; private set; } = new();
+    public double? AvgPrice { get; private set; }
+    public float Rating { get; private set; } = 0;
+    public string Status { get; private set; } = "Active";
     public DateTime CreatedAt { get; private set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; private set; } = DateTime.UtcNow;
-    public bool IsDeleted { get; private set; } = false;
+
+    // Navigation properties
+    public List<RestaurantImage> Images { get; private set; } = new();
+    public List<Review> Reviews { get; private set; } = new();
+    public List<Favorite> Favorites { get; private set; } = new();
 
     // Domain events
     private readonly List<IDomainEvent> _domainEvents = new();
@@ -35,15 +38,13 @@ public class Restaurant
     /// Tạo nhà hàng mới
     /// </summary>
     public static Restaurant Create(
+        int partnerId,
         string name,
         string address,
-        decimal? latitude = null,
-        decimal? longitude = null,
-        string? region = null,
-        decimal? avgPrice = null,
+        double? latitude = null,
+        double? longitude = null,
         string? description = null,
-        List<string>? imageUrls = null,
-        List<string>? tags = null)
+        double? avgPrice = null)
     {
         // Validate input
         if (string.IsNullOrWhiteSpace(name))
@@ -65,15 +66,13 @@ public class Restaurant
 
         var restaurant = new Restaurant
         {
+            PartnerId = partnerId,
             Name = name.Trim(),
             Address = address.Trim(),
             Latitude = latitude,
             Longitude = longitude,
-            Region = region?.Trim(),
             AvgPrice = avgPrice,
             Description = description?.Trim(),
-            ImageUrls = imageUrls ?? new List<string>(),
-            Tags = tags ?? new List<string>(),
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
@@ -81,10 +80,9 @@ public class Restaurant
         // Add domain event
         restaurant._domainEvents.Add(new RestaurantCreatedEvent(
             restaurant.Id,
+            restaurant.PartnerId,
             restaurant.Name,
-            restaurant.Address,
-            restaurant.Latitude,
-            restaurant.Longitude
+            restaurant.Address
         ));
 
         return restaurant;

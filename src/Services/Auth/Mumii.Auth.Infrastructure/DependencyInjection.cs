@@ -5,6 +5,7 @@ using Mumii.Auth.Domain.Interfaces;
 using Mumii.Auth.Infrastructure.Data;
 using Mumii.Auth.Infrastructure.Repositories;
 using Mumii.Auth.Infrastructure.Services;
+using Mumii.Shared.Common.Data;
 
 namespace Mumii.Auth.Infrastructure;
 
@@ -20,7 +21,18 @@ public static class DependencyInjection
         this IServiceCollection services, 
         IConfiguration configuration)
     {
-        // Database - SQLite
+        // MongoDB
+        services.AddMongoDb(configuration);
+
+        // MongoDB Repositories
+        services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IProfileRepository, ProfileRepository>();
+        services.AddScoped<INotificationRepository, NotificationRepository>();
+        
+        // MongoDB Services
+        services.AddScoped<IMongoIdGenerator, MongoIdGenerator>();
+
+        // Database - SQLite (deprecated - keeping for backward compatibility)
         var connectionString = configuration.GetConnectionString("DefaultConnection") ??
             "Data Source=auth.db";
 
@@ -29,8 +41,8 @@ public static class DependencyInjection
             options.UseSqlite(connectionString);
         });
 
-        // Repositories
-        services.AddScoped<IAccountRepository, AccountRepository>();
+        // Repositories (deprecated - will be removed)
+        // services.AddScoped<IAccountRepository, AccountRepository>();
 
         // Services
         services.AddScoped<IJwtService, JwtService>();
@@ -49,6 +61,8 @@ public static class DependencyInjection
         try
         {
             await context.Database.EnsureCreatedAsync();
+            // Ensure MongoDB is initialized (collections + indexes)
+            await serviceProvider.EnsureMongoInitializedAsync();
         }
         catch (Exception ex)
         {

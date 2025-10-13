@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Mumii.Auth.Domain.Entities;
 using Mumii.Auth.Domain.Interfaces;
+using Mumii.Auth.Infrastructure.Services;
 using Mumii.Shared.Common.Constants;
 using Mumii.Shared.Common.DTOs;
 using Mumii.Shared.Common.Models;
@@ -15,17 +16,20 @@ namespace Mumii.Auth.Api.Controllers;
 [Route(ApiRoutes.Auth.Base)]
 public class AuthController : ControllerBase
 {
-    private readonly IAccountRepository _accountRepository;
+    private readonly IUserRepository _userRepository;
     private readonly IJwtService _jwtService;
+    private readonly IMongoIdGenerator _idGenerator;
     private readonly ILogger<AuthController> _logger;
 
     public AuthController(
-        IAccountRepository accountRepository,
+        IUserRepository userRepository,
         IJwtService jwtService,
+        IMongoIdGenerator idGenerator,
         ILogger<AuthController> logger)
     {
-        _accountRepository = accountRepository;
+        _userRepository = userRepository;
         _jwtService = jwtService;
+        _idGenerator = idGenerator;
         _logger = logger;
     }
 
@@ -40,38 +44,41 @@ public class AuthController : ControllerBase
         try
         {
             // Kiểm tra email đã tồn tại
-            var existingAccount = await _accountRepository.GetByEmailAsync(request.Email, cancellationToken);
-            if (existingAccount != null)
+            var existingUser = await _userRepository.GetByEmailAsync(request.Email, cancellationToken);
+            if (existingUser != null)
             {
                 return BadRequest(ApiResponse<LoginResponse>.ErrorResult(
                     "Email đã được sử dụng",
                     "Email này đã có tài khoản"));
             }
 
-            // Tạo tài khoản mới
-            var account = Account.Create(request.Email, request.Password, request.DisplayName);
-            await _accountRepository.AddAsync(account, cancellationToken);
-            await _accountRepository.SaveChangesAsync(cancellationToken);
+            // Generate ID cho user mới
+            var userId = await _idGenerator.GetNextIdAsync("users", cancellationToken);
+
+            // Tạo user mới
+            var newUser = Mumii.Auth.Domain.Entities.User.CreateWithEmail(userId, request.Email, request.Password, request.Fullname);
+            await _userRepository.AddAsync(newUser, cancellationToken);
 
             // Generate tokens
-            var accessToken = _jwtService.GenerateAccessToken(account);
+            var accessToken = _jwtService.GenerateAccessTokenForUser(newUser);
             var refreshToken = _jwtService.GenerateRefreshToken();
 
             var response = new LoginResponse(
                 AccessToken: accessToken,
                 RefreshToken: refreshToken,
-                Account: new AccountDto(
-                    account.Id,
-                    account.Email,
-                    account.DisplayName,
-                    account.AvatarUrl,
-                    account.Role.ToString(),
-                    account.IsActive,
-                    account.CreatedAt
+                User: new UserDto(
+                    newUser.Id,
+                    newUser.Email,
+                    newUser.Fullname,
+                    newUser.Role,
+                    newUser.IsActive,
+                    newUser.LoginMethod,
+                    newUser.CreatedAt,
+                    null // Profile - sẽ được tạo riêng
                 )
             );
 
-            _logger.LogInformation("Account registered successfully: {Email}", request.Email);
+            _logger.LogInformation("User registered successfully: {Email}", request.Email);
             return Ok(ApiResponse<LoginResponse>.SuccessResult(response, "Đăng ký thành công"));
         }
         catch (ArgumentException ex)
@@ -98,9 +105,9 @@ public class AuthController : ControllerBase
     {
         try
         {
-            // Tìm tài khoản
-            var account = await _accountRepository.GetByEmailAsync(request.Email, cancellationToken);
-            if (account == null || !account.VerifyPassword(request.Password))
+            // Tìm user
+            var user = await _userRepository.GetByEmailAsync(request.Email, cancellationToken);
+            if (user == null || !user.VerifyPassword(request.Password))
             {
                 _logger.LogWarning("Login failed for email: {Email}", request.Email);
                 return BadRequest(ApiResponse<LoginResponse>.ErrorResult(
@@ -108,30 +115,31 @@ public class AuthController : ControllerBase
                     "Email hoặc mật khẩu không đúng"));
             }
 
-            // Kiểm tra tài khoản có active không
-            if (!account.IsActive)
+            // Kiểm tra user có active không
+            if (!user.IsActive)
             {
-                _logger.LogWarning("Login attempt for inactive account: {Email}", request.Email);
+                _logger.LogWarning("Login attempt for inactive user: {Email}", request.Email);
                 return BadRequest(ApiResponse<LoginResponse>.ErrorResult(
                     "Tài khoản bị khóa",
                     "Tài khoản của bạn đã bị vô hiệu hóa"));
             }
 
             // Generate tokens
-            var accessToken = _jwtService.GenerateAccessToken(account);
+            var accessToken = _jwtService.GenerateAccessTokenForUser(user);
             var refreshToken = _jwtService.GenerateRefreshToken();
 
             var response = new LoginResponse(
                 AccessToken: accessToken,
                 RefreshToken: refreshToken,
-                Account: new AccountDto(
-                    account.Id,
-                    account.Email,
-                    account.DisplayName,
-                    account.AvatarUrl,
-                    account.Role.ToString(),
-                    account.IsActive,
-                    account.CreatedAt
+                User: new UserDto(
+                    user.Id,
+                    user.Email,
+                    user.Fullname,
+                    user.Role,
+                    user.IsActive,
+                    user.LoginMethod,
+                    user.CreatedAt,
+                    null // Profile - sẽ được load riêng nếu cần
                 )
             );
 
@@ -173,109 +181,110 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// Lấy thông tin profile hiện tại
+    /// Lấy thông tin user hiện tại
     /// </summary>
     [HttpGet("profile")]
     [Authorize]
-    public async Task<ActionResult<ApiResponse<AccountDto>>> GetProfile(CancellationToken cancellationToken)
+    public async Task<ActionResult<ApiResponse<UserDto>>> GetProfile(CancellationToken cancellationToken)
     {
         try
         {
-            var accountId = User.FindFirst("account_id")?.Value ??
+            var userIdStr = User.FindFirst("user_id")?.Value ??
                            User.FindFirst("sub")?.Value;
 
-            if (string.IsNullOrEmpty(accountId))
+            if (string.IsNullOrEmpty(userIdStr) || !int.TryParse(userIdStr, out var userId))
             {
-                return Unauthorized(ApiResponse<AccountDto>.ErrorResult(
+                return Unauthorized(ApiResponse<UserDto>.ErrorResult(
                     "Không xác thực",
                     "Token không hợp lệ"));
             }
 
-            var account = await _accountRepository.GetByIdAsync(accountId, cancellationToken);
-            if (account == null)
+            var user = await _userRepository.GetByIdAsync(userId, cancellationToken);
+            if (user == null)
             {
-                return NotFound(ApiResponse<AccountDto>.ErrorResult(
+                return NotFound(ApiResponse<UserDto>.ErrorResult(
                     "Không tìm thấy",
                     "Tài khoản không tồn tại"));
             }
 
-            var accountDto = new AccountDto(
-                account.Id,
-                account.Email,
-                account.DisplayName,
-                account.AvatarUrl,
-                account.Role.ToString(),
-                account.IsActive,
-                account.CreatedAt
+            var userDto = new UserDto(
+                user.Id,
+                user.Email,
+                user.Fullname,
+                user.Role,
+                user.IsActive,
+                user.LoginMethod,
+                user.CreatedAt,
+                null // Profile - sẽ được load riêng
             );
 
-            return Ok(ApiResponse<AccountDto>.SuccessResult(accountDto));
+            return Ok(ApiResponse<UserDto>.SuccessResult(userDto));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting profile");
-            return StatusCode(500, ApiResponse<AccountDto>.ErrorResult(
+            _logger.LogError(ex, "Error getting user profile");
+            return StatusCode(500, ApiResponse<UserDto>.ErrorResult(
                 "Lỗi hệ thống",
-                "Đã xảy ra lỗi khi lấy thông tin profile"));
+                "Đã xảy ra lỗi khi lấy thông tin user"));
         }
     }
 
     /// <summary>
-    /// Cập nhật profile
+    /// Cập nhật thông tin user
     /// </summary>
     [HttpPut("profile")]
     [Authorize]
-    public async Task<ActionResult<ApiResponse<AccountDto>>> UpdateProfile(
-        [FromBody] UpdateProfileRequest request,
+    public async Task<ActionResult<ApiResponse<UserDto>>> UpdateProfile(
+        [FromBody] UpdateUserRequest request,
         CancellationToken cancellationToken)
     {
         try
         {
-            var accountId = User.FindFirst("account_id")?.Value ??
+            var userIdStr = User.FindFirst("user_id")?.Value ??
                            User.FindFirst("sub")?.Value;
 
-            if (string.IsNullOrEmpty(accountId))
+            if (string.IsNullOrEmpty(userIdStr) || !int.TryParse(userIdStr, out var userId))
             {
-                return Unauthorized(ApiResponse<AccountDto>.ErrorResult(
+                return Unauthorized(ApiResponse<UserDto>.ErrorResult(
                     "Không xác thực",
                     "Token không hợp lệ"));
             }
 
-            var account = await _accountRepository.GetByIdAsync(accountId, cancellationToken);
-            if (account == null)
+            var user = await _userRepository.GetByIdAsync(userId, cancellationToken);
+            if (user == null)
             {
-                return NotFound(ApiResponse<AccountDto>.ErrorResult(
+                return NotFound(ApiResponse<UserDto>.ErrorResult(
                     "Không tìm thấy",
                     "Tài khoản không tồn tại"));
             }
 
-            // Cập nhật profile
-            account.UpdateProfile(request.DisplayName, request.AvatarUrl);
-            await _accountRepository.UpdateAsync(account, cancellationToken);
-            await _accountRepository.SaveChangesAsync(cancellationToken);
+            // Cập nhật basic info
+            user.UpdateBasicInfo(request.Fullname);
+            await _userRepository.UpdateAsync(user, cancellationToken);
 
-            var accountDto = new AccountDto(
-                account.Id,
-                account.Email,
-                account.DisplayName,
-                account.AvatarUrl,
-                account.Role.ToString(),
-                account.IsActive,
-                account.CreatedAt
+            var userDto = new UserDto(
+                user.Id,
+                user.Email,
+                user.Fullname,
+                user.Role,
+                user.IsActive,
+                user.LoginMethod,
+                user.CreatedAt,
+                null // Profile
             );
 
-            return Ok(ApiResponse<AccountDto>.SuccessResult(accountDto, "Cập nhật profile thành công"));
+            return Ok(ApiResponse<UserDto>.SuccessResult(userDto, "Cập nhật thông tin thành công"));
         }
         catch (ArgumentException ex)
         {
-            return BadRequest(ApiResponse<AccountDto>.ErrorResult("Dữ liệu không hợp lệ", ex.Message));
+            return BadRequest(ApiResponse<UserDto>.ErrorResult("Dữ liệu không hợp lệ", ex.Message));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating profile");
-            return StatusCode(500, ApiResponse<AccountDto>.ErrorResult(
+            _logger.LogError(ex, "Error updating user info");
+            return StatusCode(500, ApiResponse<UserDto>.ErrorResult(
                 "Lỗi hệ thống",
-                "Đã xảy ra lỗi khi cập nhật profile"));
+                "Đã xảy ra lỗi khi cập nhật thông tin"));
         }
     }
 
@@ -290,18 +299,18 @@ public class AuthController : ControllerBase
     {
         try
         {
-            var accountId = User.FindFirst("account_id")?.Value ??
+            var userIdStr = User.FindFirst("user_id")?.Value ??
                            User.FindFirst("sub")?.Value;
 
-            if (string.IsNullOrEmpty(accountId))
+            if (string.IsNullOrEmpty(userIdStr) || !int.TryParse(userIdStr, out var userId))
             {
                 return Unauthorized(ApiResponse.ErrorResult(
                     "Không xác thực",
                     "Token không hợp lệ"));
             }
 
-            var account = await _accountRepository.GetByIdAsync(accountId, cancellationToken);
-            if (account == null)
+            var user = await _userRepository.GetByIdAsync(userId, cancellationToken);
+            if (user == null)
             {
                 return NotFound(ApiResponse.ErrorResult(
                     "Không tìm thấy",
@@ -309,11 +318,10 @@ public class AuthController : ControllerBase
             }
 
             // Đổi mật khẩu
-            account.ChangePassword(request.CurrentPassword, request.NewPassword);
-            await _accountRepository.UpdateAsync(account, cancellationToken);
-            await _accountRepository.SaveChangesAsync(cancellationToken);
+            user.ChangePassword(request.CurrentPassword, request.NewPassword);
+            await _userRepository.UpdateAsync(user, cancellationToken);
 
-            _logger.LogInformation("Password changed successfully for account: {AccountId}", accountId);
+            _logger.LogInformation("Password changed successfully for user: {UserId}", userId);
             return Ok(ApiResponse.SuccessResult("Đổi mật khẩu thành công"));
         }
         catch (UnauthorizedAccessException ex)

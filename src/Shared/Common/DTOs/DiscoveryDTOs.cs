@@ -1,21 +1,57 @@
 namespace Mumii.Shared.Common.DTOs;
 
 /// <summary>
-/// DTO cho thông tin nhà hàng
+/// DTO cho thông tin nhà hàng theo schema mới
 /// </summary>
 public record RestaurantDto(
-    string Id,
+    int Id,
+    int PartnerId,
     string Name,
     string Address,
-    decimal? Latitude,
-    decimal? Longitude,
-    string? Region,
-    decimal? AvgPrice,
-    decimal Rating,
+    double? Longitude,
+    double? Latitude,
     string? Description,
-    List<string> ImageUrls,
-    List<string> Tags,
+    double? AvgPrice,
+    float Rating,
+    string Status,
+    DateTime CreatedAt,
+    List<RestaurantImageDto> Images,
+    List<ReviewDto> Reviews,
+    int FavoriteCount
+);
+
+/// <summary>
+/// DTO cho hình ảnh nhà hàng
+/// </summary>
+public record RestaurantImageDto(
+    int Id,
+    int RestaurantId,
+    string ImageUrl,
     DateTime CreatedAt
+);
+
+/// <summary>
+/// DTO cho review nhà hàng
+/// </summary>
+public record ReviewDto(
+    int Id,
+    int UserId,
+    int RestaurantId,
+    int Rating,
+    string Comment,
+    DateTime CreatedAt,
+    UserDto? User
+);
+
+/// <summary>
+/// DTO cho favorite nhà hàng
+/// </summary>
+public record FavoriteDto(
+    int Id,
+    int UserId,
+    int RestaurantId,
+    DateTime CreatedAt,
+    RestaurantDto Restaurant
 );
 
 /// <summary>
@@ -24,13 +60,11 @@ public record RestaurantDto(
 public record CreateRestaurantRequest(
     string Name,
     string Address,
-    decimal? Latitude,
-    decimal? Longitude,
-    string? Region,
-    decimal? AvgPrice,
+    double? Latitude,
+    double? Longitude,
     string? Description,
-    List<string> ImageUrls,
-    List<string> Tags
+    double? AvgPrice,
+    List<string> ImageUrls
 );
 
 /// <summary>
@@ -39,13 +73,34 @@ public record CreateRestaurantRequest(
 public record UpdateRestaurantRequest(
     string Name,
     string Address,
-    decimal? Latitude,
-    decimal? Longitude,
-    string? Region,
-    decimal? AvgPrice,
+    double? Latitude,
+    double? Longitude,
     string? Description,
-    List<string> ImageUrls,
-    List<string> Tags
+    double? AvgPrice,
+    string Status
+);
+
+/// <summary>
+/// DTO cho tạo review
+/// </summary>
+public record CreateReviewRequest(
+    int Rating,
+    string Comment
+);
+
+/// <summary>
+/// DTO cho cập nhật review
+/// </summary>
+public record UpdateReviewRequest(
+    int Rating,
+    string Comment
+);
+
+/// <summary>
+/// DTO cho thêm hình ảnh nhà hàng
+/// </summary>
+public record AddRestaurantImageRequest(
+    string ImageUrl
 );
 
 /// <summary>

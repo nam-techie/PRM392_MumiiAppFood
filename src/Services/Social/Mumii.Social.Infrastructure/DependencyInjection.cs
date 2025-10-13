@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Mumii.Social.Domain.Interfaces;
 using Mumii.Social.Infrastructure.Data;
 using Mumii.Social.Infrastructure.Repositories;
+using Mumii.Shared.Common.Data;
 
 namespace Mumii.Social.Infrastructure;
 
@@ -19,6 +20,9 @@ public static class DependencyInjection
         this IServiceCollection services, 
         IConfiguration configuration)
     {
+        // MongoDB
+        services.AddMongoDb(configuration);
+
         // Database - SQLite
         var connectionString = configuration.GetConnectionString("DefaultConnection") ??
             "Data Source=social.db";

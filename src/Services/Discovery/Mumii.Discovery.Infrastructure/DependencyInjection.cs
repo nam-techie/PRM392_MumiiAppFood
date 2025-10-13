@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Mumii.Discovery.Domain.Interfaces;
 using Mumii.Discovery.Infrastructure.Data;
 using Mumii.Discovery.Infrastructure.Repositories;
+using Mumii.Shared.Common.Data;
 
 namespace Mumii.Discovery.Infrastructure;
 
@@ -19,6 +20,9 @@ public static class DependencyInjection
         this IServiceCollection services, 
         IConfiguration configuration)
     {
+        // MongoDB
+        services.AddMongoDb(configuration);
+
         // Database - SQLite
         var connectionString = configuration.GetConnectionString("DefaultConnection") ??
             "Data Source=discovery.db";

@@ -1,105 +1,72 @@
 namespace Mumii.Shared.Common.DTOs;
 
 /// <summary>
-/// DTO cho bài đăng
+/// DTO cho mood/tâm trạng
+/// </summary>
+public record MoodDto(
+    int Id,
+    string Name,
+    string? Description,
+    DateTime CreatedAt
+);
+
+/// <summary>
+/// DTO cho bài đăng theo schema mới
 /// </summary>
 public record PostDto(
-    string Id,
-    string AccountId,
+    int Id,
+    int PartnerId,
+    int? RestaurantId,
+    string Title,
     string Content,
-    string? Mood,
-    List<string> ImageUrls,
-    string? RestaurantId,
-    int ReactionCount,
-    int CommentCount,
     DateTime CreatedAt,
-    AccountDto Account,
+    List<MoodDto> Moods,
     RestaurantDto? Restaurant,
-    UserReactionDto? UserReaction
+    UserDto Partner
 );
 
 /// <summary>
 /// DTO cho tạo bài đăng mới
 /// </summary>
 public record CreatePostRequest(
+    string Title,
     string Content,
-    string? Mood,
-    List<string> ImageUrls,
-    string? RestaurantId
+    int? RestaurantId,
+    List<int> MoodIds
 );
 
 /// <summary>
 /// DTO cho cập nhật bài đăng
 /// </summary>
 public record UpdatePostRequest(
+    string Title,
     string Content,
-    string? Mood,
-    List<string> ImageUrls,
-    string? RestaurantId
+    int? RestaurantId,
+    List<int> MoodIds
+);
+
+/// <summary>
+/// DTO cho tạo mood mới
+/// </summary>
+public record CreateMoodRequest(
+    string Name,
+    string? Description
 );
 
 /// <summary>
 /// DTO cho tìm kiếm bài đăng
 /// </summary>
 public record SearchPostsQuery(
-    string? Mood,
-    string? RestaurantId,
-    string? AccountId,
+    List<int>? MoodIds,
+    int? RestaurantId,
+    int? PartnerId,
     DateTime? FromDate,
     DateTime? ToDate,
     int Page = 1,
     int PageSize = 20
 );
 
-/// <summary>
-/// DTO cho comment
-/// </summary>
-public record CommentDto(
-    string Id,
-    string PostId,
-    string AccountId,
-    string Content,
-    string? ParentCommentId,
-    DateTime CreatedAt,
-    AccountDto Account,
-    List<CommentDto> Replies
-);
-
-/// <summary>
-/// DTO cho tạo comment mới
-/// </summary>
-public record CreateCommentRequest(
-    string Content,
-    string? ParentCommentId
-);
-
-/// <summary>
-/// DTO cho reaction
-/// </summary>
-public record ReactionDto(
-    string Id,
-    string PostId,
-    string AccountId,
-    string Type,
-    DateTime CreatedAt,
-    AccountDto Account
-);
-
-/// <summary>
-/// DTO cho reaction của user hiện tại
-/// </summary>
-public record UserReactionDto(
-    string Id,
-    string Type,
-    DateTime CreatedAt
-);
-
-/// <summary>
-/// DTO cho toggle reaction
-/// </summary>
-public record ToggleReactionRequest(
-    string Type // LIKE, LOVE, WOW
-);
+// Xóa comment và reaction DTOs vì đã chuyển sang Review trong Discovery service
 
 /// <summary>
 /// Enum cho các loại mood

@@ -37,5 +37,8 @@
     <PackageVersion Include="Google.Apis.Auth" Version="1.67.0" />
     <PackageVersion Include="Google.Cloud.AIPlatform.V1" Version="2.25.0" />
     <PackageVersion Include="Google_GenerativeAI" Version="3.2.0" />
+    <!-- MongoDB -->
+    <PackageVersion Include="MongoDB.Driver" Version="2.29.0" />
+    <PackageVersion Include="MongoDB.Bson" Version="2.29.0" />
   </ItemGroup>
 </Project>

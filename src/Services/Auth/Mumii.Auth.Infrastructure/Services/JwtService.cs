@@ -77,6 +77,44 @@ public class JwtService : IJwtService
     }
 
     /// <summary>
+    /// Generate access token cho User (MongoDB)
+    /// </summary>
+    public string GenerateAccessTokenForUser(User user)
+    {
+        var claims = new List<Claim>
+        {
+            new(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new(ClaimTypes.Email, user.Email),
+            new(ClaimTypes.Name, user.Fullname),
+            new(ClaimTypes.Role, user.Role),
+            new("user_id", user.Id.ToString()),
+            new("is_active", user.IsActive.ToString()),
+            new("login_method", user.LoginMethod),
+            // Thêm claims theo chuẩn JWT
+            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new(JwtRegisteredClaimNames.Iat, 
+                DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), 
+                ClaimValueTypes.Integer64)
+        };
+
+        var credentials = new SigningCredentials(_key, SecurityAlgorithms.HmacSha256);
+
+        var tokenDescriptor = new SecurityTokenDescriptor
+        {
+            Subject = new ClaimsIdentity(claims),
+            Expires = DateTime.UtcNow.Add(GetAccessTokenExpiry()),
+            SigningCredentials = credentials,
+            Issuer = _configuration["Jwt:Issuer"] ?? "Mumii",
+            Audience = _configuration["Jwt:Audience"] ?? "Mumii.Client"
+        };
+
+        var tokenHandler = new JwtSecurityTokenHandler();
+        var token = tokenHandler.CreateToken(tokenDescriptor);
+        
+        return tokenHandler.WriteToken(token);
+    }
+
+    /// <summary>
     /// Generate refresh token
     /// </summary>
     public string GenerateRefreshToken()

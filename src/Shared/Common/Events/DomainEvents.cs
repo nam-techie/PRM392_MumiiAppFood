@@ -19,69 +19,90 @@ public abstract record DomainEvent : IDomainEvent
 }
 
 /// <summary>
-/// Event khi tài khoản được tạo
+/// Event khi user được tạo
 /// </summary>
-public record AccountCreatedEvent(
-    string AccountId,
+public record UserCreatedEvent(
+    int UserId,
     string Email,
-    string DisplayName
+    string Fullname
+) : DomainEvent;
+
+/// <summary>
+/// Event khi notification được tạo
+/// </summary>
+public record NotificationCreatedEvent(
+    int NotificationId,
+    int UserId,
+    string Title,
+    string Content
 ) : DomainEvent;
 
 /// <summary>
 /// Event khi nhà hàng được tạo
 /// </summary>
 public record RestaurantCreatedEvent(
-    string RestaurantId,
+    int RestaurantId,
+    int PartnerId,
     string Name,
-    string Address,
-    decimal? Latitude,
-    decimal? Longitude
+    string Address
+) : DomainEvent;
+
+/// <summary>
+/// Event khi review được tạo
+/// </summary>
+public record ReviewCreatedEvent(
+    int ReviewId,
+    int UserId,
+    int RestaurantId,
+    int Rating
+) : DomainEvent;
+
+/// <summary>
+/// Event khi review được cập nhật
+/// </summary>
+public record ReviewUpdatedEvent(
+    int ReviewId,
+    int UserId,
+    int RestaurantId,
+    int OldRating,
+    int NewRating
+) : DomainEvent;
+
+/// <summary>
+/// Event khi favorite được thêm
+/// </summary>
+public record FavoriteAddedEvent(
+    int FavoriteId,
+    int UserId,
+    int RestaurantId
 ) : DomainEvent;
 
 /// <summary>
 /// Event khi bài đăng được tạo
 /// </summary>
 public record PostCreatedEvent(
-    string PostId,
-    string AccountId,
+    int PostId,
+    int PartnerId,
+    string Title,
     string Content,
-    string? Mood,
-    string? RestaurantId
-) : DomainEvent;
-
-/// <summary>
-/// Event khi có reaction mới
-/// </summary>
-public record ReactionAddedEvent(
-    string PostId,
-    string AccountId,
-    string ReactionType
-) : DomainEvent;
-
-/// <summary>
-/// Event khi reaction bị xóa
-/// </summary>
-public record ReactionRemovedEvent(
-    string PostId,
-    string AccountId,
-    string ReactionType
-) : DomainEvent;
-
-/// <summary>
-/// Event khi có comment mới
-/// </summary>
-public record CommentAddedEvent(
-    string PostId,
-    string CommentId,
-    string AccountId,
-    string Content
+    int? RestaurantId
 ) : DomainEvent;
 
 /// <summary>
 /// Event khi rating nhà hàng thay đổi
 /// </summary>
 public record RestaurantRatingUpdatedEvent(
-    string RestaurantId,
-    decimal NewRating,
+    int RestaurantId,
+    float NewRating,
     int TotalRatings
+) : DomainEvent;
+
+// Giữ lại các events cũ để backward compatibility
+/// <summary>
+/// Event khi tài khoản được tạo (legacy)
+/// </summary>
+public record AccountCreatedEvent(
+    string AccountId,
+    string Email,
+    string DisplayName
 ) : DomainEvent;

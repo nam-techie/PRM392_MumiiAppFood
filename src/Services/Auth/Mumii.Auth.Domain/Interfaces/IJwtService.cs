@@ -8,9 +8,14 @@ namespace Mumii.Auth.Domain.Interfaces;
 public interface IJwtService
 {
     /// <summary>
-    /// Generate access token
+    /// Generate access token (deprecated - use GenerateAccessTokenForUser)
     /// </summary>
     string GenerateAccessToken(Account account);
+
+    /// <summary>
+    /// Generate access token cho User (MongoDB)
+    /// </summary>
+    string GenerateAccessTokenForUser(User user);
 
     /// <summary>
     /// Generate refresh token

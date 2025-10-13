@@ -3,23 +3,20 @@ using Mumii.Shared.Common.Events;
 namespace Mumii.Social.Domain.Entities;
 
 /// <summary>
-/// Entity bài đăng
+/// Entity bài đăng theo schema mới
 /// </summary>
 public class Post
 {
-    public string Id { get; private set; } = Guid.NewGuid().ToString();
-    public string AccountId { get; private set; } = string.Empty;
+    public int Id { get; private set; }
+    public int PartnerId { get; private set; }
+    public int? RestaurantId { get; private set; }
+    public string Title { get; private set; } = string.Empty;
     public string Content { get; private set; } = string.Empty;
-    public string? Mood { get; private set; }
-    public List<string> ImageUrls { get; private set; } = new();
-    public string? RestaurantId { get; private set; }
-    public int ReactionCount { get; private set; } = 0;
-    public int CommentCount { get; private set; } = 0;
     public DateTime CreatedAt { get; private set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; private set; } = DateTime.UtcNow;
-    public bool IsDeleted { get; private set; } = false;
 
     // Navigation properties
+    public List<PostMood> PostMoods { get; private set; } = new();
     public List<Comment> Comments { get; private set; } = new();
     public List<Reaction> Reactions { get; private set; } = new();
 
@@ -36,29 +33,30 @@ public class Post
     /// Tạo bài đăng mới
     /// </summary>
     public static Post Create(
-        string accountId,
+        int partnerId,
+        string title,
         string content,
-        string? mood = null,
-        List<string>? imageUrls = null,
-        string? restaurantId = null)
+        int? restaurantId = null)
     {
         // Validate input
-        if (string.IsNullOrWhiteSpace(accountId))
-            throw new ArgumentException("Account ID không được để trống", nameof(accountId));
+        if (string.IsNullOrWhiteSpace(title))
+            throw new ArgumentException("Tiêu đề không được để trống", nameof(title));
         
         if (string.IsNullOrWhiteSpace(content))
             throw new ArgumentException("Nội dung không được để trống", nameof(content));
+
+        if (title.Length > 255)
+            throw new ArgumentException("Tiêu đề không được vượt quá 255 ký tự", nameof(title));
 
         if (content.Length > 2000)
             throw new ArgumentException("Nội dung không được vượt quá 2000 ký tự", nameof(content));
 
         var post = new Post
         {
-            AccountId = accountId,
+            PartnerId = partnerId,
+            Title = title.Trim(),
             Content = content.Trim(),
-            Mood = mood?.Trim(),
-            ImageUrls = imageUrls ?? new List<string>(),
-            RestaurantId = restaurantId?.Trim(),
+            RestaurantId = restaurantId,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
@@ -66,9 +64,9 @@ public class Post
         // Add domain event
         post._domainEvents.Add(new PostCreatedEvent(
             post.Id,
-            post.AccountId,
+            post.PartnerId,
+            post.Title,
             post.Content,
-            post.Mood,
             post.RestaurantId
         ));
 
@@ -79,56 +77,54 @@ public class Post
     /// Cập nhật bài đăng
     /// </summary>
     public void Update(
+        string title,
         string content,
-        string? mood = null,
-        List<string>? imageUrls = null,
-        string? restaurantId = null)
+        int? restaurantId = null)
     {
+        if (string.IsNullOrWhiteSpace(title))
+            throw new ArgumentException("Tiêu đề không được để trống", nameof(title));
+        
         if (string.IsNullOrWhiteSpace(content))
             throw new ArgumentException("Nội dung không được để trống", nameof(content));
+
+        if (title.Length > 255)
+            throw new ArgumentException("Tiêu đề không được vượt quá 255 ký tự", nameof(title));
 
         if (content.Length > 2000)
             throw new ArgumentException("Nội dung không được vượt quá 2000 ký tự", nameof(content));
 
+        Title = title.Trim();
         Content = content.Trim();
-        Mood = mood?.Trim();
-        ImageUrls = imageUrls ?? ImageUrls;
-        RestaurantId = restaurantId?.Trim();
+        RestaurantId = restaurantId;
         UpdatedAt = DateTime.UtcNow;
     }
 
     /// <summary>
-    /// Thêm reaction
+    /// Thêm mood cho post
     /// </summary>
-    public void AddReaction(string accountId, string reactionType)
+    public void AddMood(int moodId)
     {
-        if (string.IsNullOrWhiteSpace(accountId))
-            throw new ArgumentException("Account ID không được để trống", nameof(accountId));
-
-        // Kiểm tra đã react chưa
-        var existingReaction = Reactions.FirstOrDefault(r => r.AccountId == accountId);
-        if (existingReaction != null)
-        {
-            // Nếu cùng loại reaction thì xóa (toggle)
-            if (existingReaction.Type == reactionType)
-            {
-                RemoveReaction(accountId);
+        // Kiểm tra đã có mood này chưa
+        var existingMood = PostMoods.FirstOrDefault(pm => pm.MoodId == moodId);
+        if (existingMood != null)
                 return;
-            }
-            // Nếu khác loại thì update
-            existingReaction.UpdateType(reactionType);
-        }
-        else
-        {
-            // Thêm reaction mới
-            var reaction = Reaction.Create(Id, accountId, reactionType);
-            Reactions.Add(reaction);
-            ReactionCount++;
 
-            _domainEvents.Add(new ReactionAddedEvent(Id, accountId, reactionType));
-        }
-
+        var postMood = PostMood.Create(Id, moodId);
+        PostMoods.Add(postMood);
         UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Xóa mood khỏi post
+    /// </summary>
+    public void RemoveMood(int moodId)
+    {
+        var postMood = PostMoods.FirstOrDefault(pm => pm.MoodId == moodId);
+        if (postMood != null)
+        {
+            PostMoods.Remove(postMood);
+            UpdatedAt = DateTime.UtcNow;
+        }
     }
 
     /// <summary>

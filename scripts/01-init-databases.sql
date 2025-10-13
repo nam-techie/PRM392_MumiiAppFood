@@ -15,115 +15,197 @@ FLUSH PRIVILEGES;
 -- Sử dụng database mumii_auth để tạo tables
 USE mumii_auth;
 
--- Accounts table
-CREATE TABLE IF NOT EXISTS accounts (
-    id VARCHAR(36) PRIMARY KEY,
+-- Users table (theo schema mới)
+CREATE TABLE IF NOT EXISTS users (
+    id INT PRIMARY KEY AUTO_INCREMENT,
     email VARCHAR(255) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    display_name VARCHAR(100) NOT NULL,
-    avatar_url VARCHAR(500),
-    role ENUM('User', 'Admin') DEFAULT 'User',
+    password VARCHAR(255) NOT NULL,
+    fullname VARCHAR(255) NOT NULL,
+    role VARCHAR(50) DEFAULT 'User',
     is_active BOOLEAN DEFAULT true,
+    login_method VARCHAR(50) DEFAULT 'Email',
+    google_id VARCHAR(255),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_email (email),
-    INDEX idx_is_active (is_active)
+    INDEX idx_is_active (is_active),
+    INDEX idx_google_id (google_id)
+);
+
+-- Profiles table
+CREATE TABLE IF NOT EXISTS profiles (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    gender VARCHAR(20),
+    avatar VARCHAR(500),
+    phone_number VARCHAR(20),
+    address TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_user_id (user_id)
+);
+
+-- Notifications table
+CREATE TABLE IF NOT EXISTS notifications (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    content TEXT NOT NULL,
+    is_read BOOLEAN DEFAULT false,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_user_id (user_id),
+    INDEX idx_is_read (is_read),
+    INDEX idx_created_at (created_at)
 );
 
 -- Sử dụng database mumii_discovery
 USE mumii_discovery;
 
--- Restaurants table
+-- Restaurants table (theo schema mới)
 CREATE TABLE IF NOT EXISTS restaurants (
-    id VARCHAR(36) PRIMARY KEY,
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    partner_id INT NOT NULL,
     name VARCHAR(255) NOT NULL,
     address TEXT NOT NULL,
-    latitude DECIMAL(10,8),
-    longitude DECIMAL(11,8),
-    region VARCHAR(100),
-    avg_price DECIMAL(10,2),
-    rating DECIMAL(2,1) DEFAULT 0,
+    longitude DOUBLE,
+    latitude DOUBLE,
     description TEXT,
-    image_urls JSON,
-    tags JSON,
+    avg_price DOUBLE,
+    rating FLOAT DEFAULT 0,
+    status VARCHAR(50) DEFAULT 'Active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    is_deleted BOOLEAN DEFAULT false,
+    INDEX idx_partner_id (partner_id),
     INDEX idx_location (latitude, longitude),
-    INDEX idx_region (region),
     INDEX idx_rating (rating),
+    INDEX idx_status (status),
+    INDEX idx_created_at (created_at)
+);
+
+-- Restaurant Images table
+CREATE TABLE IF NOT EXISTS restaurant_images (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    restaurant_id INT NOT NULL,
+    image_url VARCHAR(500) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE,
+    INDEX idx_restaurant_id (restaurant_id)
+);
+
+-- Reviews table
+CREATE TABLE IF NOT EXISTS reviews (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    restaurant_id INT NOT NULL,
+    rating INT NOT NULL CHECK (rating >= 1 AND rating <= 5),
+    comment TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE,
+    INDEX idx_user_id (user_id),
+    INDEX idx_restaurant_id (restaurant_id),
+    INDEX idx_rating (rating),
+    INDEX idx_created_at (created_at)
+);
+
+-- Favorites table
+CREATE TABLE IF NOT EXISTS favorites (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    restaurant_id INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_favorite (user_id, restaurant_id),
+    INDEX idx_user_id (user_id),
+    INDEX idx_restaurant_id (restaurant_id),
     INDEX idx_created_at (created_at)
 );
 
 -- Sử dụng database mumii_social
 USE mumii_social;
 
--- Posts table
+-- Moods table
+CREATE TABLE IF NOT EXISTS moods (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(50) NOT NULL,
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_name (name)
+);
+
+-- Posts table (theo schema mới)
 CREATE TABLE IF NOT EXISTS posts (
-    id VARCHAR(36) PRIMARY KEY,
-    account_id VARCHAR(36) NOT NULL,
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    partner_id INT NOT NULL,
+    restaurant_id INT,
+    title VARCHAR(255) NOT NULL,
     content TEXT NOT NULL,
-    mood VARCHAR(50),
-    image_urls JSON,
-    restaurant_id VARCHAR(36),
-    reaction_count INT DEFAULT 0,
-    comment_count INT DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    is_deleted BOOLEAN DEFAULT false,
-    INDEX idx_account_id (account_id),
+    INDEX idx_partner_id (partner_id),
     INDEX idx_restaurant_id (restaurant_id),
-    INDEX idx_mood (mood),
-    INDEX idx_created_at (created_at),
-    INDEX idx_is_deleted (is_deleted)
+    INDEX idx_created_at (created_at)
 );
 
--- Comments table
-CREATE TABLE IF NOT EXISTS comments (
-    id VARCHAR(36) PRIMARY KEY,
-    post_id VARCHAR(36) NOT NULL,
-    account_id VARCHAR(36) NOT NULL,
-    content TEXT NOT NULL,
-    parent_comment_id VARCHAR(36),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    is_deleted BOOLEAN DEFAULT false,
-    INDEX idx_post_id (post_id),
-    INDEX idx_account_id (account_id),
-    INDEX idx_parent_comment_id (parent_comment_id),
-    INDEX idx_created_at (created_at),
+-- Post_Mood table (many-to-many relationship)
+CREATE TABLE IF NOT EXISTS post_moods (
+    post_id INT NOT NULL,
+    mood_id INT NOT NULL,
+    PRIMARY KEY (post_id, mood_id),
     FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
-    FOREIGN KEY (parent_comment_id) REFERENCES comments(id) ON DELETE CASCADE
-);
-
--- Reactions table
-CREATE TABLE IF NOT EXISTS reactions (
-    id VARCHAR(36) PRIMARY KEY,
-    post_id VARCHAR(36) NOT NULL,
-    account_id VARCHAR(36) NOT NULL,
-    type ENUM('LIKE', 'LOVE', 'WOW') NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE KEY unique_reaction (post_id, account_id),
+    FOREIGN KEY (mood_id) REFERENCES moods(id) ON DELETE CASCADE,
     INDEX idx_post_id (post_id),
-    INDEX idx_account_id (account_id),
-    INDEX idx_type (type),
-    FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE
+    INDEX idx_mood_id (mood_id)
 );
 
 -- Insert sample data
 
+-- Sample users
+USE mumii_auth;
+INSERT IGNORE INTO users (id, email, password, fullname, role, login_method) VALUES
+(1, 'admin@mumii.com', '$2b$10$example_hashed_password', 'Administrator', 'Admin', 'Email'),
+(2, 'partner@mumii.com', '$2b$10$example_hashed_password', 'Restaurant Partner', 'Partner', 'Email'),
+(3, 'user@mumii.com', '$2b$10$example_hashed_password', 'Regular User', 'User', 'Email');
+
+-- Sample profiles
+INSERT IGNORE INTO profiles (user_id, gender, avatar, phone_number, address) VALUES
+(1, 'Male', 'https://example.com/admin_avatar.jpg', '0901234567', 'Hà Nội, Việt Nam'),
+(2, 'Female', 'https://example.com/partner_avatar.jpg', '0987654321', 'TP.HCM, Việt Nam'),
+(3, 'Male', 'https://example.com/user_avatar.jpg', '0912345678', 'Đà Nẵng, Việt Nam');
+
 -- Sample restaurants
 USE mumii_discovery;
-INSERT IGNORE INTO restaurants (id, name, address, latitude, longitude, region, avg_price, rating, description, image_urls, tags) VALUES
-(UUID(), 'Phở Hà Nội', '123 Phố Cổ, Hoàn Kiếm, Hà Nội', 21.0285, 105.8542, 'HaNoi', 50000, 4.5, 'Phở bò truyền thống Hà Nội', '["https://example.com/pho1.jpg"]', '["vietnamese", "pho", "beef"]'),
-(UUID(), 'Bún Chả Obama', '1 Lê Văn Hưu, Hai Bà Trưng, Hà Nội', 21.0285, 105.8542, 'HaNoi', 80000, 4.8, 'Bún chả nổi tiếng từ chuyến thăm của Obama', '["https://example.com/buncha1.jpg"]', '["vietnamese", "buncha", "grilled"]'),
-(UUID(), 'Cơm Tấm Sài Gòn', '123 Nguyễn Văn Cừ, Quận 1, TP.HCM', 10.7769, 106.7009, 'HoChiMinh', 45000, 4.3, 'Cơm tấm sườn nướng truyền thống', '["https://example.com/comtam1.jpg"]', '["vietnamese", "rice", "grilled"]'),
-(UUID(), 'Bánh Mì Huynh Hoa', '26 Lê Thị Riêng, Quận 1, TP.HCM', 10.7769, 106.7009, 'HoChiMinh', 25000, 4.7, 'Bánh mì thập cẩm nổi tiếng', '["https://example.com/banhmi1.jpg"]', '["vietnamese", "sandwich", "street_food"]'),
-(UUID(), 'Mì Quảng Bà Mua', '45 Trần Cao Vân, Đà Nẵng', 16.0471, 108.2068, 'DaNang', 35000, 4.4, 'Mì quảng đặc sản Đà Nẵng', '["https://example.com/miquang1.jpg"]', '["vietnamese", "noodles", "seafood"]');
+INSERT IGNORE INTO restaurants (partner_id, name, address, latitude, longitude, avg_price, rating, description, status) VALUES
+(2, 'Phở Hà Nội', '123 Phố Cổ, Hoàn Kiếm, Hà Nội', 21.0285, 105.8542, 50000, 4.5, 'Phở bò truyền thống Hà Nội', 'Active'),
+(2, 'Bún Chả Obama', '1 Lê Văn Hưu, Hai Bà Trưng, Hà Nội', 21.0285, 105.8542, 80000, 4.8, 'Bún chả nổi tiếng từ chuyến thăm của Obama', 'Active'),
+(2, 'Cơm Tấm Sài Gòn', '123 Nguyễn Văn Cừ, Quận 1, TP.HCM', 10.7769, 106.7009, 45000, 4.3, 'Cơm tấm sườn nướng truyền thống', 'Active');
+
+-- Sample restaurant images
+INSERT IGNORE INTO restaurant_images (restaurant_id, image_url) VALUES
+(1, 'https://example.com/pho1.jpg'),
+(1, 'https://example.com/pho2.jpg'),
+(2, 'https://example.com/buncha1.jpg'),
+(3, 'https://example.com/comtam1.jpg');
+
+-- Sample moods
+USE mumii_social;
+INSERT IGNORE INTO moods (name, description) VALUES
+('Happy', 'Cảm thấy vui vẻ, hạnh phúc'),
+('Satisfied', 'Cảm thấy hài lòng với món ăn'),
+('Excited', 'Hào hứng, phấn khích'),
+('Hungry', 'Cảm thấy đói bụng'),
+('Disappointed', 'Cảm thấy thất vọng');
 
 -- Sample posts
-USE mumii_social;
-INSERT IGNORE INTO posts (id, account_id, content, mood, image_urls, restaurant_id, reaction_count, comment_count) VALUES
-(UUID(), 'admin-id', 'Hôm nay ăn phở ngon quá! 🍜', 'SATISFIED', '["https://example.com/post1.jpg"]', NULL, 5, 2),
-(UUID(), 'admin-id', 'Khám phá quán bún chả mới, recommended! 👍', 'EXCITED', '["https://example.com/post2.jpg"]', NULL, 8, 3),
-(UUID(), 'admin-id', 'Đói quá, không biết ăn gì giờ... 🤔', 'HUNGRY', '[]', NULL, 3, 1);
+INSERT IGNORE INTO posts (partner_id, restaurant_id, title, content) VALUES
+(2, 1, 'Phở Hà Nội Truyền Thống', 'Hôm nay giới thiệu món phở bò truyền thống với nước dùng được ninh từ xương trong 12 tiếng! 🍜'),
+(2, 2, 'Bún Chả Đặc Biệt', 'Khám phá hương vị bún chả đặc biệt tại quán chúng tôi! 👍'),
+(2, 3, 'Cơm Tấm Ngon Miệng', 'Cơm tấm sườn nướng với nước mắm pha đặc biệt của gia đình 🍽️');
+
+-- Sample post moods
+INSERT IGNORE INTO post_moods (post_id, mood_id) VALUES
+(1, 2), -- Post 1 có mood Satisfied
+(2, 3), -- Post 2 có mood Excited
+(3, 1); -- Post 3 có mood Happy
