@@ -97,7 +97,6 @@ public class RestaurantsController : ControllerBase
     [HttpGet("search")]
     public async Task<ActionResult<ApiResponse<PagedResult<RestaurantDto>>>> SearchRestaurants(
         [FromQuery] string? q,
-        [FromQuery] string? region,
         [FromQuery] decimal? lat,
         [FromQuery] decimal? lng,
         [FromQuery] decimal? radiusKm,
@@ -112,14 +111,12 @@ public class RestaurantsController : ControllerBase
         {
             var query = new SearchRestaurantsQuery(
                 Query: q,
-                Region: region,
                 Latitude: lat,
                 Longitude: lng,
                 RadiusKm: radiusKm,
                 MinPrice: minPrice,
                 MaxPrice: maxPrice,
                 MinRating: minRating,
-                Tags: null,
                 Page: page < 1 ? 1 : page,
                 PageSize: pageSize < 1 || pageSize > 100 ? 20 : pageSize
             );
@@ -191,15 +188,16 @@ public class RestaurantsController : ControllerBase
         try
         {
             var restaurant = Restaurant.Create(
+                id: 0, // will be generated in repository
+                partnerId: 0, // set actual partner later if needed
                 name: request.Name,
                 address: request.Address,
                 latitude: request.Latitude,
                 longitude: request.Longitude,
-                region: request.Region,
-                avgPrice: request.AvgPrice,
                 description: request.Description,
-                imageUrls: request.ImageUrls,
-                tags: request.Tags
+                avgPrice: request.AvgPrice,
+                rating: 0,
+                status: "Active"
             );
 
             await _restaurantRepository.AddAsync(restaurant, cancellationToken);

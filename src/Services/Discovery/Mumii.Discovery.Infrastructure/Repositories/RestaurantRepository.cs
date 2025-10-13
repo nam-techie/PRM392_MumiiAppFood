@@ -98,7 +98,7 @@ public class RestaurantRepository : IRestaurantRepository
 
         // Sắp xếp
         var filter = filters.Count == 0 ? Builders<Restaurant>.Filter.Empty : Builders<Restaurant>.Filter.And(filters);
-        var totalCount = (int)await _restaurants.CountDocumentsAsync(filter, cancellationToken);
+        var totalCount = (int)await _restaurants.CountDocumentsAsync(filter, options: null, cancellationToken);
         var items = await _restaurants.Find(filter)
             .SortByDescending(r => r.Rating)
             .ThenByDescending(r => r.CreatedAt)
