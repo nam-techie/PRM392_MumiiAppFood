@@ -1,8 +1,6 @@
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Mumii.Social.Domain.Interfaces;
-using Mumii.Social.Infrastructure.Data;
 using Mumii.Social.Infrastructure.Repositories;
 using Mumii.Shared.Common.Data;
 
@@ -23,18 +21,12 @@ public static class DependencyInjection
         // MongoDB
         services.AddMongoDb(configuration);
 
-        // Database - SQLite
-        var connectionString = configuration.GetConnectionString("DefaultConnection") ??
-            "Data Source=social.db";
+        // EF DbContext removed; MongoDB only
 
-        services.AddDbContext<SocialDbContext>(options =>
-        {
-            options.UseSqlite(connectionString);
-        });
-
-        // Repositories
+        // Repositories (Mongo)
         services.AddScoped<IPostRepository, PostRepository>();
-        services.AddScoped<ICommentRepository, CommentRepository>();
+        services.AddScoped<IMoodRepository, MoodRepository>();
+        services.AddScoped<IPostMoodRepository, PostMoodRepository>();
 
         return services;
     }
@@ -44,18 +36,6 @@ public static class DependencyInjection
     /// </summary>
     public static async Task EnsureDatabaseCreatedAsync(this IServiceProvider serviceProvider)
     {
-        using var scope = serviceProvider.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<SocialDbContext>();
-        
-        try
-        {
-            await context.Database.EnsureCreatedAsync();
-        }
-        catch (Exception ex)
-        {
-            // Log lỗi nếu cần
-            Console.WriteLine($"Error creating database: {ex.Message}");
-            throw;
-        }
+        await Task.CompletedTask;
     }
 }

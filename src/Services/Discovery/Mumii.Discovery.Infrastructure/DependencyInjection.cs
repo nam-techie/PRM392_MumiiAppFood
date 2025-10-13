@@ -1,8 +1,6 @@
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Mumii.Discovery.Domain.Interfaces;
-using Mumii.Discovery.Infrastructure.Data;
 using Mumii.Discovery.Infrastructure.Repositories;
 using Mumii.Shared.Common.Data;
 
@@ -23,14 +21,7 @@ public static class DependencyInjection
         // MongoDB
         services.AddMongoDb(configuration);
 
-        // Database - SQLite
-        var connectionString = configuration.GetConnectionString("DefaultConnection") ??
-            "Data Source=discovery.db";
-
-        services.AddDbContext<DiscoveryDbContext>(options =>
-        {
-            options.UseSqlite(connectionString);
-        });
+        // EF DbContext removed; MongoDB only
 
         // Repositories (Mongo)
         services.AddScoped<IRestaurantRepository, RestaurantRepository>();
@@ -45,18 +36,6 @@ public static class DependencyInjection
     /// </summary>
     public static async Task EnsureDatabaseCreatedAsync(this IServiceProvider serviceProvider)
     {
-        using var scope = serviceProvider.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<DiscoveryDbContext>();
-        
-        try
-        {
-            await context.Database.EnsureCreatedAsync();
-        }
-        catch (Exception ex)
-        {
-            // Log lỗi nếu cần
-            Console.WriteLine($"Error creating database: {ex.Message}");
-            throw;
-        }
+        await Task.CompletedTask;
     }
 }

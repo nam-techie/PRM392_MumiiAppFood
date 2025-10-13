@@ -15,13 +15,16 @@ namespace Mumii.Social.Api.Controllers;
 public class PostsController : ControllerBase
 {
     private readonly IPostRepository _postRepository;
+    private readonly IPostMoodRepository _postMoodRepository;
     private readonly ILogger<PostsController> _logger;
 
     public PostsController(
         IPostRepository postRepository,
+        IPostMoodRepository postMoodRepository,
         ILogger<PostsController> logger)
     {
         _postRepository = postRepository;
+        _postMoodRepository = postMoodRepository;
         _logger = logger;
     }
 
@@ -70,6 +73,25 @@ public class PostsController : ControllerBase
                 "Lỗi hệ thống",
                 "Đã xảy ra lỗi khi lấy danh sách bài đăng"));
         }
+    }
+
+    [HttpPost("{id}/moods/{moodId}")]
+    public async Task<ActionResult<ApiResponse>> AttachMood(int id, int moodId, CancellationToken cancellationToken)
+    {
+        var exists = await _postRepository.ExistsAsync(id.ToString(), cancellationToken);
+        if (!exists) return NotFound(ApiResponse.ErrorResult("Không tìm thấy", "Bài đăng không tồn tại"));
+        if (!await _postMoodRepository.ExistsAsync(id, moodId, cancellationToken))
+            await _postMoodRepository.AddAsync(id, moodId, cancellationToken);
+        return Ok(ApiResponse.SuccessResult("Đã gán mood cho post"));
+    }
+
+    [HttpDelete("{id}/moods/{moodId}")]
+    public async Task<ActionResult<ApiResponse>> DetachMood(int id, int moodId, CancellationToken cancellationToken)
+    {
+        var exists = await _postRepository.ExistsAsync(id.ToString(), cancellationToken);
+        if (!exists) return NotFound(ApiResponse.ErrorResult("Không tìm thấy", "Bài đăng không tồn tại"));
+        await _postMoodRepository.RemoveAsync(id, moodId, cancellationToken);
+        return Ok(ApiResponse.SuccessResult("Đã bỏ mood khỏi post"));
     }
 
     /// <summary>

@@ -75,6 +75,11 @@ public static class MongoDbInitializer
 			var reviews = db.GetCollection<MongoDB.Bson.BsonDocument>("reviews");
 			var favorites = db.GetCollection<MongoDB.Bson.BsonDocument>("favorites");
 
+			// Ensure collections for Social service
+			var posts = db.GetCollection<MongoDB.Bson.BsonDocument>("posts");
+			var moods = db.GetCollection<MongoDB.Bson.BsonDocument>("moods");
+			var postMoods = db.GetCollection<MongoDB.Bson.BsonDocument>("post_moods");
+
 		// Create indexes if not exist
 			try
 		{
@@ -142,6 +147,38 @@ public static class MongoDbInitializer
 					new CreateIndexModel<MongoDB.Bson.BsonDocument>(
 						Builders<MongoDB.Bson.BsonDocument>.IndexKeys.Ascending("user_id").Ascending("restaurant_id"),
 						new CreateIndexOptions { Name = "uq_favorites_user_restaurant", Unique = true }
+					)
+				);
+
+				// Social: posts indexes
+				await posts.Indexes.CreateManyAsync(new[]
+				{
+					new CreateIndexModel<MongoDB.Bson.BsonDocument>(
+						Builders<MongoDB.Bson.BsonDocument>.IndexKeys.Ascending("partner_id"),
+						new CreateIndexOptions { Name = "idx_posts_partner" }
+					),
+					new CreateIndexModel<MongoDB.Bson.BsonDocument>(
+						Builders<MongoDB.Bson.BsonDocument>.IndexKeys.Ascending("restaurant_id"),
+						new CreateIndexOptions { Name = "idx_posts_restaurant" }
+					),
+					new CreateIndexModel<MongoDB.Bson.BsonDocument>(
+						Builders<MongoDB.Bson.BsonDocument>.IndexKeys.Descending("created_at"),
+						new CreateIndexOptions { Name = "idx_posts_created" }
+					)
+				});
+
+				// Social: moods unique name, post_moods unique pair
+				await moods.Indexes.CreateOneAsync(
+					new CreateIndexModel<MongoDB.Bson.BsonDocument>(
+						Builders<MongoDB.Bson.BsonDocument>.IndexKeys.Ascending("name"),
+						new CreateIndexOptions { Name = "uq_moods_name", Unique = true }
+					)
+				);
+
+				await postMoods.Indexes.CreateOneAsync(
+					new CreateIndexModel<MongoDB.Bson.BsonDocument>(
+						Builders<MongoDB.Bson.BsonDocument>.IndexKeys.Ascending("post_id").Ascending("mood_id"),
+						new CreateIndexOptions { Name = "uq_post_moods_post_mood", Unique = true }
 					)
 				);
 		}
