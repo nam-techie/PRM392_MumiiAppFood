@@ -33,7 +33,8 @@ WORKDIR /app
 COPY --from=publish /app/publish .
 
 # Health check
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:8083/health || exit 1
+  CMD curl -f http://localhost:${PORT:-8083}/health || exit 1
 
 ENTRYPOINT ["dotnet", "Mumii.Social.Api.dll"]

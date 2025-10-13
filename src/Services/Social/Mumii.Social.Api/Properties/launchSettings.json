@@ -4,7 +4,9 @@
       "commandName": "Project",
       "launchBrowser": true,
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "MongoDB__ConnectionString": "mongodb+srv://mumii:nam180259@mumiiapp.af3ygoe.mongodb.net/?retryWrites=true&w=majority&appName=mumiiApp",
+        "MongoDB__DatabaseName": "mumii_app"
       },
       "applicationUrl": "https://localhost:51490;http://localhost:51495"
     }
