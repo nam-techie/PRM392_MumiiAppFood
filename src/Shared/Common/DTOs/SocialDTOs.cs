@@ -19,6 +19,7 @@ public record PostDto(
     int? RestaurantId,
     string Title,
     string Content,
+    string? ImageUrl,
     DateTime CreatedAt,
     List<MoodDto> Moods,
     RestaurantDto? Restaurant,
@@ -31,6 +32,7 @@ public record PostDto(
 public record CreatePostRequest(
     string Title,
     string Content,
+    string? ImageUrl,
     int? RestaurantId,
     List<int> MoodIds
 );
@@ -41,6 +43,7 @@ public record CreatePostRequest(
 public record UpdatePostRequest(
     string Title,
     string Content,
+    string? ImageUrl,
     int? RestaurantId,
     List<int> MoodIds
 );

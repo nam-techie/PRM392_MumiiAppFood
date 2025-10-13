@@ -64,13 +64,19 @@ public static class MongoDbInitializer
 		using var scope = services.CreateScope();
 		var db = scope.ServiceProvider.GetRequiredService<IMongoDatabase>();
 
-		// Ensure collections & indexes for Auth service
+			// Ensure collections & indexes for Auth service
 		var userCollection = db.GetCollection<MongoDB.Bson.BsonDocument>("users");
 		var profileCollection = db.GetCollection<MongoDB.Bson.BsonDocument>("profiles");
 		var notificationCollection = db.GetCollection<MongoDB.Bson.BsonDocument>("notifications");
 
+			// Ensure collections for Discovery service
+			var restaurants = db.GetCollection<MongoDB.Bson.BsonDocument>("restaurants");
+			var restaurantImages = db.GetCollection<MongoDB.Bson.BsonDocument>("restaurant_images");
+			var reviews = db.GetCollection<MongoDB.Bson.BsonDocument>("reviews");
+			var favorites = db.GetCollection<MongoDB.Bson.BsonDocument>("favorites");
+
 		// Create indexes if not exist
-		try
+			try
 		{
 			await userCollection.Indexes.CreateOneAsync(
 				new CreateIndexModel<MongoDB.Bson.BsonDocument>(
@@ -92,6 +98,52 @@ public static class MongoDbInitializer
 					new CreateIndexOptions { Name = "idx_notifications_user_read" }
 				)
 			);
+
+				// Discovery: restaurants indexes
+				await restaurants.Indexes.CreateManyAsync(new[]
+				{
+					new CreateIndexModel<MongoDB.Bson.BsonDocument>(
+						Builders<MongoDB.Bson.BsonDocument>.IndexKeys.Ascending("partner_id"),
+						new CreateIndexOptions { Name = "idx_restaurants_partner" }
+					),
+					new CreateIndexModel<MongoDB.Bson.BsonDocument>(
+						Builders<MongoDB.Bson.BsonDocument>.IndexKeys.Ascending("status"),
+						new CreateIndexOptions { Name = "idx_restaurants_status" }
+					),
+					new CreateIndexModel<MongoDB.Bson.BsonDocument>(
+						Builders<MongoDB.Bson.BsonDocument>.IndexKeys.Descending("rating").Descending("created_at"),
+						new CreateIndexOptions { Name = "idx_restaurants_rating_created" }
+					)
+				});
+
+				// Discovery: restaurant_images
+				await restaurantImages.Indexes.CreateOneAsync(
+					new CreateIndexModel<MongoDB.Bson.BsonDocument>(
+						Builders<MongoDB.Bson.BsonDocument>.IndexKeys.Ascending("restaurant_id"),
+						new CreateIndexOptions { Name = "idx_restaurant_images_restaurant" }
+					)
+				);
+
+				// Discovery: reviews
+				await reviews.Indexes.CreateManyAsync(new[]
+				{
+					new CreateIndexModel<MongoDB.Bson.BsonDocument>(
+						Builders<MongoDB.Bson.BsonDocument>.IndexKeys.Ascending("restaurant_id"),
+						new CreateIndexOptions { Name = "idx_reviews_restaurant" }
+					),
+					new CreateIndexModel<MongoDB.Bson.BsonDocument>(
+						Builders<MongoDB.Bson.BsonDocument>.IndexKeys.Ascending("user_id"),
+						new CreateIndexOptions { Name = "idx_reviews_user" }
+					)
+				});
+
+				// Discovery: favorites (unique pair user+restaurant)
+				await favorites.Indexes.CreateOneAsync(
+					new CreateIndexModel<MongoDB.Bson.BsonDocument>(
+						Builders<MongoDB.Bson.BsonDocument>.IndexKeys.Ascending("user_id").Ascending("restaurant_id"),
+						new CreateIndexOptions { Name = "uq_favorites_user_restaurant", Unique = true }
+					)
+				);
 		}
 		catch
 		{

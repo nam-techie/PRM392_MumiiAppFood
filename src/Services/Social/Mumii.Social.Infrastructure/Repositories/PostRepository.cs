@@ -1,8 +1,8 @@
-using Microsoft.EntityFrameworkCore;
+using MongoDB.Driver;
 using Mumii.Social.Domain.Entities;
 using Mumii.Social.Domain.Interfaces;
-using Mumii.Social.Infrastructure.Data;
 using Mumii.Shared.Common.DTOs;
+using MongoDB.Bson;
 
 namespace Mumii.Social.Infrastructure.Repositories;
 
@@ -11,11 +11,11 @@ namespace Mumii.Social.Infrastructure.Repositories;
 /// </summary>
 public class PostRepository : IPostRepository
 {
-    private readonly SocialDbContext _context;
+    private readonly IMongoCollection<Post> _posts;
 
-    public PostRepository(SocialDbContext context)
+    public PostRepository(IMongoDatabase database)
     {
-        _context = context;
+        _posts = database.GetCollection<Post>("posts");
     }
 
     /// <summary>
@@ -23,10 +23,9 @@ public class PostRepository : IPostRepository
     /// </summary>
     public async Task<Post?> GetByIdAsync(string id, CancellationToken cancellationToken = default)
     {
-        return await _context.Posts
-            .Include(p => p.Comments.Where(c => !c.IsDeleted))
-            .Include(p => p.Reactions)
-            .FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted, cancellationToken);
+        if (int.TryParse(id, out var pid))
+            return await _posts.Find(p => p.Id == pid).FirstOrDefaultAsync(cancellationToken);
+        return null;
     }
 
     /// <summary>
@@ -37,16 +36,11 @@ public class PostRepository : IPostRepository
         int pageSize, 
         CancellationToken cancellationToken = default)
     {
-        var query = _context.Posts
-            .Where(p => !p.IsDeleted)
-            .Include(p => p.Reactions)
-            .OrderByDescending(p => p.CreatedAt);
-
-        var totalCount = await query.CountAsync(cancellationToken);
-        
-        var items = await query
+        var find = _posts.Find(_ => true);
+        var totalCount = (int)await find.CountDocumentsAsync(cancellationToken);
+        var items = await find.SortByDescending(p => p.CreatedAt)
             .Skip((page - 1) * pageSize)
-            .Take(pageSize)
+            .Limit(pageSize)
             .ToListAsync(cancellationToken);
 
         var totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
@@ -61,47 +55,16 @@ public class PostRepository : IPostRepository
         SearchPostsQuery query, 
         CancellationToken cancellationToken = default)
     {
-        IQueryable<Post> dbQuery = _context.Posts
-            .Where(p => !p.IsDeleted)
-            .Include(p => p.Reactions);
-
-        // Lọc theo mood
-        if (!string.IsNullOrWhiteSpace(query.Mood))
-        {
-            dbQuery = dbQuery.Where(p => p.Mood == query.Mood);
-        }
-
-        // Lọc theo restaurant ID
-        if (!string.IsNullOrWhiteSpace(query.RestaurantId))
-        {
-            dbQuery = dbQuery.Where(p => p.RestaurantId == query.RestaurantId);
-        }
-
-        // Lọc theo account ID
-        if (!string.IsNullOrWhiteSpace(query.AccountId))
-        {
-            dbQuery = dbQuery.Where(p => p.AccountId == query.AccountId);
-        }
-
-        // Lọc theo ngày tạo
-        if (query.FromDate.HasValue)
-        {
-            dbQuery = dbQuery.Where(p => p.CreatedAt >= query.FromDate);
-        }
-
-        if (query.ToDate.HasValue)
-        {
-            dbQuery = dbQuery.Where(p => p.CreatedAt <= query.ToDate);
-        }
-
-        // Sắp xếp
-        dbQuery = dbQuery.OrderByDescending(p => p.CreatedAt);
-
-        var totalCount = await dbQuery.CountAsync(cancellationToken);
-        
-        var items = await dbQuery
+        var filters = new List<FilterDefinition<Post>>();
+        var builder = Builders<Post>.Filter;
+        if (query.RestaurantId.HasValue) filters.Add(builder.Eq(p => p.RestaurantId, query.RestaurantId.Value));
+        if (query.PartnerId.HasValue) filters.Add(builder.Eq(p => p.PartnerId, query.PartnerId.Value));
+        var filter = filters.Count == 0 ? builder.Empty : builder.And(filters);
+        var totalCount = (int)await _posts.CountDocumentsAsync(filter, cancellationToken);
+        var items = await _posts.Find(filter)
+            .SortByDescending(p => p.CreatedAt)
             .Skip((query.Page - 1) * query.PageSize)
-            .Take(query.PageSize)
+            .Limit(query.PageSize)
             .ToListAsync(cancellationToken);
 
         var totalPages = (int)Math.Ceiling((double)totalCount / query.PageSize);
@@ -118,16 +81,15 @@ public class PostRepository : IPostRepository
         int pageSize,
         CancellationToken cancellationToken = default)
     {
-        var query = _context.Posts
-            .Where(p => p.AccountId == accountId && !p.IsDeleted)
-            .Include(p => p.Reactions)
-            .OrderByDescending(p => p.CreatedAt);
+        if (!int.TryParse(accountId, out var partnerId))
+            return new PagedResult<Post>(new List<Post>(), 0, page, pageSize, 0);
 
-        var totalCount = await query.CountAsync(cancellationToken);
-        
-        var items = await query
+        var filter = Builders<Post>.Filter.Eq(p => p.PartnerId, partnerId);
+        var totalCount = (int)await _posts.CountDocumentsAsync(filter, cancellationToken);
+        var items = await _posts.Find(filter)
+            .SortByDescending(p => p.CreatedAt)
             .Skip((page - 1) * pageSize)
-            .Take(pageSize)
+            .Limit(pageSize)
             .ToListAsync(cancellationToken);
 
         var totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
@@ -140,7 +102,18 @@ public class PostRepository : IPostRepository
     /// </summary>
     public async Task<Post> AddAsync(Post post, CancellationToken cancellationToken = default)
     {
-        await _context.Posts.AddAsync(post, cancellationToken);
+        if (post.Id == 0)
+        {
+            post = Post.Create(
+                id: await GetNextIdAsync("posts", cancellationToken),
+                partnerId: post.PartnerId,
+                title: post.Title,
+                content: post.Content,
+                imageUrl: post.ImageUrl,
+                restaurantId: post.RestaurantId
+            );
+        }
+        await _posts.InsertOneAsync(post, cancellationToken: cancellationToken);
         return post;
     }
 
@@ -149,8 +122,8 @@ public class PostRepository : IPostRepository
     /// </summary>
     public async Task<Post> UpdateAsync(Post post, CancellationToken cancellationToken = default)
     {
-        _context.Posts.Update(post);
-        return await Task.FromResult(post);
+        await _posts.ReplaceOneAsync(p => p.Id == post.Id, post, cancellationToken: cancellationToken);
+        return post;
     }
 
     /// <summary>
@@ -158,12 +131,8 @@ public class PostRepository : IPostRepository
     /// </summary>
     public async Task DeleteAsync(string id, CancellationToken cancellationToken = default)
     {
-        var post = await GetByIdAsync(id, cancellationToken);
-        if (post != null)
-        {
-            post.Delete();
-            _context.Posts.Update(post);
-        }
+        if (!int.TryParse(id, out var pid)) return;
+        await _posts.DeleteOneAsync(p => p.Id == pid, cancellationToken);
     }
 
     /// <summary>
@@ -171,15 +140,27 @@ public class PostRepository : IPostRepository
     /// </summary>
     public async Task<bool> ExistsAsync(string id, CancellationToken cancellationToken = default)
     {
-        return await _context.Posts
-            .AnyAsync(p => p.Id == id && !p.IsDeleted, cancellationToken);
+        if (!int.TryParse(id, out var pid)) return false;
+        var count = await _posts.CountDocumentsAsync(p => p.Id == pid, cancellationToken: cancellationToken);
+        return count > 0;
     }
 
     /// <summary>
     /// Lưu thay đổi
     /// </summary>
-    public async Task SaveChangesAsync(CancellationToken cancellationToken = default)
+    public Task SaveChangesAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+
+    private async Task<int> GetNextIdAsync(string sequenceName, CancellationToken cancellationToken)
     {
-        await _context.SaveChangesAsync(cancellationToken);
+        var counters = _posts.Database.GetCollection<BsonDocument>("counters");
+        var filter = Builders<BsonDocument>.Filter.Eq("_id", sequenceName);
+        var update = Builders<BsonDocument>.Update.Inc("seq", 1);
+        var options = new FindOneAndUpdateOptions<BsonDocument>
+        {
+            IsUpsert = true,
+            ReturnDocument = ReturnDocument.After
+        };
+        var result = await counters.FindOneAndUpdateAsync(filter, update, options, cancellationToken);
+        return result.GetValue("seq", 1).AsInt32;
     }
 }

@@ -15,16 +15,13 @@ namespace Mumii.Social.Api.Controllers;
 public class PostsController : ControllerBase
 {
     private readonly IPostRepository _postRepository;
-    private readonly ICommentRepository _commentRepository;
     private readonly ILogger<PostsController> _logger;
 
     public PostsController(
         IPostRepository postRepository,
-        ICommentRepository commentRepository,
         ILogger<PostsController> logger)
     {
         _postRepository = postRepository;
-        _commentRepository = commentRepository;
         _logger = logger;
     }
 
@@ -35,8 +32,8 @@ public class PostsController : ControllerBase
     public async Task<ActionResult<ApiResponse<PagedResult<PostDto>>>> GetPosts(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
-        [FromQuery] string? mood = null,
-        [FromQuery] string? accountId = null,
+        [FromQuery] int? partnerId = null,
+        [FromQuery] int? restaurantId = null,
         CancellationToken cancellationToken = default)
     {
         try
@@ -44,25 +41,16 @@ public class PostsController : ControllerBase
             if (page < 1) page = 1;
             if (pageSize < 1 || pageSize > 100) pageSize = 20;
 
-            PagedResult<Post> result;
-
-            if (!string.IsNullOrWhiteSpace(mood) || !string.IsNullOrWhiteSpace(accountId))
-            {
-                var query = new SearchPostsQuery(
-                    Mood: mood,
-                    RestaurantId: null,
-                    AccountId: accountId,
-                    FromDate: null,
-                    ToDate: null,
-                    Page: page,
-                    PageSize: pageSize
-                );
-                result = await _postRepository.SearchAsync(query, cancellationToken);
-            }
-            else
-            {
-                result = await _postRepository.GetPagedAsync(page, pageSize, cancellationToken);
-            }
+            var query = new SearchPostsQuery(
+                MoodIds: null,
+                RestaurantId: restaurantId,
+                PartnerId: partnerId,
+                FromDate: null,
+                ToDate: null,
+                Page: page,
+                PageSize: pageSize
+            );
+            var result = await _postRepository.SearchAsync(query, cancellationToken);
             
             var postDtos = result.Items.Select(MapToDto).ToList();
             var pagedResult = new PagedResult<PostDto>(
@@ -124,14 +112,13 @@ public class PostsController : ControllerBase
     {
         try
         {
-            // Tạm thời sử dụng account ID cố định, trong thực tế sẽ lấy từ JWT token
-            var accountId = "demo-account-id";
-
+            var partnerId = 1; // TODO: lấy từ JWT sau
             var post = Post.Create(
-                accountId: accountId,
+                id: 0,
+                partnerId: partnerId,
+                title: request.Title,
                 content: request.Content,
-                mood: request.Mood,
-                imageUrls: request.ImageUrls,
+                imageUrl: request.ImageUrl,
                 restaurantId: request.RestaurantId
             );
 
@@ -180,9 +167,9 @@ public class PostsController : ControllerBase
             }
 
             post.Update(
+                title: request.Title,
                 content: request.Content,
-                mood: request.Mood,
-                imageUrls: request.ImageUrls,
+                imageUrl: request.ImageUrl,
                 restaurantId: request.RestaurantId
             );
 
@@ -241,182 +228,21 @@ public class PostsController : ControllerBase
     }
 
     /// <summary>
-    /// Toggle reaction cho bài đăng
-    /// </summary>
-    [HttpPut("{id}/react")]
-    public async Task<ActionResult<ApiResponse>> ToggleReaction(
-        string id,
-        [FromBody] ToggleReactionRequest request,
-        CancellationToken cancellationToken)
-    {
-        try
-        {
-            // Tạm thời sử dụng account ID cố định
-            var accountId = "demo-account-id";
-
-            var post = await _postRepository.GetByIdAsync(id, cancellationToken);
-            if (post == null)
-            {
-                return NotFound(ApiResponse.ErrorResult(
-                    "Không tìm thấy",
-                    "Bài đăng không tồn tại"));
-            }
-
-            post.AddReaction(accountId, request.Type);
-            await _postRepository.UpdateAsync(post, cancellationToken);
-            await _postRepository.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Reaction toggled for post: {PostId}", id);
-            return Ok(ApiResponse.SuccessResult("Reaction đã được cập nhật"));
-        }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(ApiResponse.ErrorResult("Dữ liệu không hợp lệ", ex.Message));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error toggling reaction for post {PostId}", id);
-            return StatusCode(500, ApiResponse.ErrorResult(
-                "Lỗi hệ thống",
-                "Đã xảy ra lỗi khi cập nhật reaction"));
-        }
-    }
-
-    /// <summary>
-    /// Lấy comments của bài đăng
-    /// </summary>
-    [HttpGet("{id}/comments")]
-    public async Task<ActionResult<ApiResponse<List<CommentDto>>>> GetComments(
-        string id,
-        CancellationToken cancellationToken)
-    {
-        try
-        {
-            var exists = await _postRepository.ExistsAsync(id, cancellationToken);
-            if (!exists)
-            {
-                return NotFound(ApiResponse<List<CommentDto>>.ErrorResult(
-                    "Không tìm thấy",
-                    "Bài đăng không tồn tại"));
-            }
-
-            var comments = await _commentRepository.GetByPostIdAsync(id, cancellationToken);
-            var commentDtos = comments.Select(MapCommentToDto).ToList();
-
-            return Ok(ApiResponse<List<CommentDto>>.SuccessResult(commentDtos));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting comments for post {PostId}", id);
-            return StatusCode(500, ApiResponse<List<CommentDto>>.ErrorResult(
-                "Lỗi hệ thống",
-                "Đã xảy ra lỗi khi lấy danh sách comments"));
-        }
-    }
-
-    /// <summary>
-    /// Thêm comment cho bài đăng
-    /// </summary>
-    [HttpPost("{id}/comments")]
-    public async Task<ActionResult<ApiResponse<CommentDto>>> CreateComment(
-        string id,
-        [FromBody] CreateCommentRequest request,
-        CancellationToken cancellationToken)
-    {
-        try
-        {
-            // Tạm thời sử dụng account ID cố định
-            var accountId = "demo-account-id";
-
-            var post = await _postRepository.GetByIdAsync(id, cancellationToken);
-            if (post == null)
-            {
-                return NotFound(ApiResponse<CommentDto>.ErrorResult(
-                    "Không tìm thấy",
-                    "Bài đăng không tồn tại"));
-            }
-
-            var comment = post.AddComment(accountId, request.Content, request.ParentCommentId);
-            await _postRepository.UpdateAsync(post, cancellationToken);
-            await _postRepository.SaveChangesAsync(cancellationToken);
-
-            var commentDto = MapCommentToDto(comment);
-            
-            _logger.LogInformation("Comment created for post: {PostId}", id);
-            return Ok(ApiResponse<CommentDto>.SuccessResult(commentDto, "Tạo comment thành công"));
-        }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(ApiResponse<CommentDto>.ErrorResult("Dữ liệu không hợp lệ", ex.Message));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error creating comment for post {PostId}", id);
-            return StatusCode(500, ApiResponse<CommentDto>.ErrorResult(
-                "Lỗi hệ thống",
-                "Đã xảy ra lỗi khi tạo comment"));
-        }
-    }
-
-    /// <summary>
     /// Map Post entity to DTO
     /// </summary>
     private static PostDto MapToDto(Post post)
     {
-        // Tạm thời tạo fake account data
-        var account = new AccountDto(
-            "demo-account-id",
-            "demo@mumii.com",
-            "Demo User",
-            null,
-            "User",
-            true,
-            DateTime.UtcNow
-        );
-
         return new PostDto(
             Id: post.Id,
-            AccountId: post.AccountId,
-            Content: post.Content,
-            Mood: post.Mood,
-            ImageUrls: post.ImageUrls,
+            PartnerId: post.PartnerId,
             RestaurantId: post.RestaurantId,
-            ReactionCount: post.ReactionCount,
-            CommentCount: post.CommentCount,
+            Title: post.Title,
+            Content: post.Content,
+            ImageUrl: post.ImageUrl,
             CreatedAt: post.CreatedAt,
-            Account: account,
-            Restaurant: null, // Sẽ cần gọi Discovery Service để lấy thông tin restaurant
-            UserReaction: null // Sẽ cần check reaction của user hiện tại
-        );
-    }
-
-    /// <summary>
-    /// Map Comment entity to DTO
-    /// </summary>
-    private static CommentDto MapCommentToDto(Comment comment)
-    {
-        // Tạm thời tạo fake account data
-        var account = new AccountDto(
-            comment.AccountId,
-            "demo@mumii.com",
-            "Demo User",
-            null,
-            "User",
-            true,
-            DateTime.UtcNow
-        );
-
-        var replies = comment.Replies.Select(MapCommentToDto).ToList();
-
-        return new CommentDto(
-            Id: comment.Id,
-            PostId: comment.PostId,
-            AccountId: comment.AccountId,
-            Content: comment.Content,
-            ParentCommentId: comment.ParentCommentId,
-            CreatedAt: comment.CreatedAt,
-            Account: account,
-            Replies: replies
+            Moods: new List<MoodDto>(),
+            Restaurant: null,
+            Partner: new UserDto(0, "", "", "User", true, "", DateTime.UtcNow, null)
         );
     }
 }
