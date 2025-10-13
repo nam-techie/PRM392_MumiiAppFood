@@ -2,6 +2,7 @@ using MongoDB.Driver;
 using Mumii.Discovery.Domain.Entities;
 using Mumii.Discovery.Domain.Interfaces;
 using Mumii.Shared.Common.DTOs;
+using MongoDB.Bson;
 
 namespace Mumii.Discovery.Infrastructure.Repositories;
 
@@ -142,6 +143,21 @@ public class RestaurantRepository : IRestaurantRepository
     /// </summary>
     public async Task<Restaurant> AddAsync(Restaurant restaurant, CancellationToken cancellationToken = default)
     {
+        if (restaurant.Id == 0)
+        {
+            restaurant = Restaurant.Create(
+                id: await GetNextIdAsync("restaurants", cancellationToken),
+                partnerId: restaurant.PartnerId,
+                name: restaurant.Name,
+                address: restaurant.Address,
+                latitude: restaurant.Latitude,
+                longitude: restaurant.Longitude,
+                description: restaurant.Description,
+                avgPrice: restaurant.AvgPrice,
+                rating: restaurant.Rating,
+                status: restaurant.Status
+            );
+        }
         await _restaurants.InsertOneAsync(restaurant, cancellationToken: cancellationToken);
         return restaurant;
     }
@@ -176,4 +192,18 @@ public class RestaurantRepository : IRestaurantRepository
     /// Lưu thay đổi
     /// </summary>
     public Task SaveChangesAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+
+    private async Task<int> GetNextIdAsync(string sequenceName, CancellationToken cancellationToken)
+    {
+        var counters = _restaurants.Database.GetCollection<BsonDocument>("counters");
+        var filter = Builders<BsonDocument>.Filter.Eq("_id", sequenceName);
+        var update = Builders<BsonDocument>.Update.Inc("seq", 1);
+        var options = new FindOneAndUpdateOptions<BsonDocument>
+        {
+            IsUpsert = true,
+            ReturnDocument = ReturnDocument.After
+        };
+        var result = await counters.FindOneAndUpdateAsync(filter, update, options, cancellationToken);
+        return result.GetValue("seq", 1).AsInt32;
+    }
 }
