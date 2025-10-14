@@ -60,7 +60,7 @@ public class PostRepository : IPostRepository
         if (query.RestaurantId.HasValue) filters.Add(builder.Eq(p => p.RestaurantId, query.RestaurantId.Value));
         if (query.PartnerId.HasValue) filters.Add(builder.Eq(p => p.PartnerId, query.PartnerId.Value));
         var filter = filters.Count == 0 ? builder.Empty : builder.And(filters);
-        var totalCount = (int)await _posts.CountDocumentsAsync(filter, cancellationToken);
+        var totalCount = (int)await _posts.CountDocumentsAsync(filter, cancellationToken: cancellationToken);
         var items = await _posts.Find(filter)
             .SortByDescending(p => p.CreatedAt)
             .Skip((query.Page - 1) * query.PageSize)
@@ -85,7 +85,7 @@ public class PostRepository : IPostRepository
             return new PagedResult<Post>(new List<Post>(), 0, page, pageSize, 0);
 
         var filter = Builders<Post>.Filter.Eq(p => p.PartnerId, partnerId);
-        var totalCount = (int)await _posts.CountDocumentsAsync(filter, cancellationToken);
+        var totalCount = (int)await _posts.CountDocumentsAsync(filter, cancellationToken: cancellationToken);
         var items = await _posts.Find(filter)
             .SortByDescending(p => p.CreatedAt)
             .Skip((page - 1) * pageSize)
