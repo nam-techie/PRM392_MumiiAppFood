@@ -6,7 +6,8 @@ EXPOSE 8080
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
-# Copy solution file
+// Copy solution file and global.json to pin SDK
+COPY ["global.json", "./"]
 COPY ["Mumii.Microservices.sln", "./"]
 
 # Copy project files
