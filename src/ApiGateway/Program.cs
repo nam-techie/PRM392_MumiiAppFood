@@ -53,8 +53,6 @@ app.UseSwaggerUI(c =>
 {
     var isDev = app.Environment.IsDevelopment();
 
-    // In production, read public HTTPS URLs from environment variables
-    // Set on Railway: AUTH_URL, DISCOVERY_URL, SOCIAL_URL, AI_URL (e.g. https://auth.yourapp.railway.app)
     string? authUrl = Environment.GetEnvironmentVariable("AUTH_URL");
     string? discoveryUrl = Environment.GetEnvironmentVariable("DISCOVERY_URL");
     string? socialUrl = Environment.GetEnvironmentVariable("SOCIAL_URL");
@@ -86,6 +84,9 @@ app.UseSwaggerUI(c =>
     c.EnableDeepLinking();
     c.EnableFilter();
     c.ShowExtensions();
+
+    // Ensure the gateway's own Swagger doc is always available
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Mumii.ApiGateway v1");
 });
 
 // Health check endpoints
