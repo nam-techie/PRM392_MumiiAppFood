@@ -51,11 +51,46 @@ app.UseCors("AllowAll");
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
-    // Load Swagger JSON trực tiếp từ các services
-    c.SwaggerEndpoint("http://localhost:8081/swagger/v1/swagger.json", "Auth API v1");
-    c.SwaggerEndpoint("http://localhost:8082/swagger/v1/swagger.json", "Discovery API v1");
-    c.SwaggerEndpoint("http://localhost:8083/swagger/v1/swagger.json", "Social API v1");
-    c.SwaggerEndpoint("http://localhost:8084/swagger/v1/swagger.json", "AI API v1");
+    var isDev = app.Environment.IsDevelopment();
+
+    // In production, read public HTTPS URLs from environment variables
+    // Set on Railway: AUTH_URL, DISCOVERY_URL, SOCIAL_URL, AI_URL (e.g. https://auth.yourapp.railway.app)
+    string? authUrl = Environment.GetEnvironmentVariable("AUTH_URL");
+    string? discoveryUrl = Environment.GetEnvironmentVariable("DISCOVERY_URL");
+    string? socialUrl = Environment.GetEnvironmentVariable("SOCIAL_URL");
+    string? aiUrl = Environment.GetEnvironmentVariable("AI_URL");
+
+    if (isDev)
+    {
+        c.SwaggerEndpoint("http://localhost:8081/swagger/v1/swagger.json", "Auth API v1");
+        c.SwaggerEndpoint("http://localhost:8082/swagger/v1/swagger.json", "Discovery API v1");
+        c.SwaggerEndpoint("http://localhost:8083/swagger/v1/swagger.json", "Social API v1");
+        c.SwaggerEndpoint("http://localhost:8084/swagger/v1/swagger.json", "AI API v1");
+    }
+    else
+    {
+        // Single-domain mode: proxy swagger through gateway paths if no external URLs supplied
+        if (string.IsNullOrWhiteSpace(authUrl))
+            c.SwaggerEndpoint("/swagger/auth/v1/swagger.json", "Auth API v1");
+        else
+            c.SwaggerEndpoint($"{authUrl.TrimEnd('/')}/swagger/v1/swagger.json", "Auth API v1");
+
+        if (string.IsNullOrWhiteSpace(discoveryUrl))
+            c.SwaggerEndpoint("/swagger/discovery/v1/swagger.json", "Discovery API v1");
+        else
+            c.SwaggerEndpoint($"{discoveryUrl.TrimEnd('/')}/swagger/v1/swagger.json", "Discovery API v1");
+
+        if (string.IsNullOrWhiteSpace(socialUrl))
+            c.SwaggerEndpoint("/swagger/social/v1/swagger.json", "Social API v1");
+        else
+            c.SwaggerEndpoint($"{socialUrl.TrimEnd('/')}/swagger/v1/swagger.json", "Social API v1");
+
+        if (string.IsNullOrWhiteSpace(aiUrl))
+            c.SwaggerEndpoint("/swagger/ai/v1/swagger.json", "AI API v1");
+        else
+            c.SwaggerEndpoint($"{aiUrl.TrimEnd('/')}/swagger/v1/swagger.json", "AI API v1");
+    }
+
     c.RoutePrefix = string.Empty; // Swagger UI tại root "/"
     c.DocumentTitle = "Mumii API Gateway - Swagger UI";
     c.DisplayRequestDuration();
