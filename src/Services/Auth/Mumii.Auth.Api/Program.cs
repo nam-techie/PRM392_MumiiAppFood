@@ -119,7 +119,10 @@ builder.Services.AddHealthChecks();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline
-if (app.Environment.IsDevelopment())
+var enableSwagger = app.Environment.IsDevelopment() ||
+                    string.Equals(Environment.GetEnvironmentVariable("SWAGGER_ENABLED"), "true", StringComparison.OrdinalIgnoreCase);
+
+if (enableSwagger)
 {
     app.UseSwagger();
     app.UseSwaggerUI(c =>
