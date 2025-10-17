@@ -2,6 +2,7 @@ using Mumii.AI.Domain.Interfaces;
 using Mumii.AI.Infrastructure.Services;
 using Serilog;
 using DotNetEnv;
+using System.Linq;
 
 // Load .env file
 Env.Load();
@@ -50,7 +51,21 @@ var enableSwagger = app.Environment.IsDevelopment() ||
 
 if (enableSwagger)
 {
-    app.UseSwagger();
+    // Set swagger server URL để Try it out đi qua API Gateway
+    app.UseSwagger(c =>
+    {
+        c.PreSerializeFilters.Add((swagger, httpReq) =>
+        {
+            var scheme = httpReq.Headers["X-Forwarded-Proto"].FirstOrDefault() ?? httpReq.Scheme;
+            var host = httpReq.Headers["X-Forwarded-Host"].FirstOrDefault() ?? httpReq.Host.Value;
+            var basePath = Environment.GetEnvironmentVariable("SWAGGER_BASE_PATH") ?? string.Empty;
+            swagger.Servers = new List<Microsoft.OpenApi.Models.OpenApiServer>
+            {
+                new() { Url = $"{scheme}://{host}{basePath}" }
+            };
+        });
+    });
+
     app.UseSwaggerUI(c =>
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "Mumii AI API v1");

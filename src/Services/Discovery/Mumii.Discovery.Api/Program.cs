@@ -1,6 +1,7 @@
 using Mumii.Discovery.Infrastructure;
 using Serilog;
 using DotNetEnv;
+using System.Linq;
 
 // Load .env file
 Env.Load();
@@ -27,14 +28,27 @@ builder.Services.AddSwaggerGen(c =>
 // Infrastructure services
 builder.Services.AddInfrastructure(builder.Configuration);
 
-// CORS
+// CORS cấu hình theo biến môi trường CORS__AllowedOrigins
+var allowedOrigins = (Environment.GetEnvironmentVariable("CORS__AllowedOrigins") ?? string.Empty)
+    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", policy =>
+    options.AddPolicy("default", policy =>
     {
-        policy.AllowAnyOrigin()
-              .AllowAnyMethod()
-              .AllowAnyHeader();
+        if (allowedOrigins.Length > 0)
+        {
+            policy.WithOrigins(allowedOrigins)
+                  .AllowAnyHeader()
+                  .AllowAnyMethod()
+                  .AllowCredentials();
+        }
+        else
+        {
+            policy.AllowAnyOrigin()
+                  .AllowAnyHeader()
+                  .AllowAnyMethod();
+        }
     });
 });
 
@@ -49,7 +63,21 @@ var enableSwagger = app.Environment.IsDevelopment() ||
 
 if (enableSwagger)
 {
-    app.UseSwagger();
+    // Set swagger server URL để Try it out đi qua API Gateway
+    app.UseSwagger(c =>
+    {
+        c.PreSerializeFilters.Add((swagger, httpReq) =>
+        {
+            var scheme = httpReq.Headers["X-Forwarded-Proto"].FirstOrDefault() ?? httpReq.Scheme;
+            var host = httpReq.Headers["X-Forwarded-Host"].FirstOrDefault() ?? httpReq.Host.Value;
+            var basePath = Environment.GetEnvironmentVariable("SWAGGER_BASE_PATH") ?? string.Empty;
+            swagger.Servers = new List<Microsoft.OpenApi.Models.OpenApiServer>
+            {
+                new() { Url = $"{scheme}://{host}{basePath}" }
+            };
+        });
+    });
+
     app.UseSwaggerUI(c =>
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "Mumii Discovery API v1");
@@ -70,7 +98,7 @@ catch (Exception ex)
 
 app.UseSerilogRequestLogging();
 
-app.UseCors("AllowAll");
+app.UseCors("default");
 
 app.UseAuthorization();
 

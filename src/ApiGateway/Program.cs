@@ -71,22 +71,11 @@ app.UseSwaggerUI(c =>
     }
     else
     {
-        // Production: only add endpoints that have explicit public URLs configured
-        if (!string.IsNullOrWhiteSpace(authUrl))
-            c.SwaggerEndpoint($"{authUrl.TrimEnd('/')}/swagger/v1/swagger.json", "Auth API v1");
-        if (!string.IsNullOrWhiteSpace(discoveryUrl))
-            c.SwaggerEndpoint($"{discoveryUrl.TrimEnd('/')}/swagger/v1/swagger.json", "Discovery API v1");
-        if (!string.IsNullOrWhiteSpace(socialUrl))
-            c.SwaggerEndpoint($"{socialUrl.TrimEnd('/')}/swagger/v1/swagger.json", "Social API v1");
-        if (!string.IsNullOrWhiteSpace(aiUrl))
-            c.SwaggerEndpoint($"{aiUrl.TrimEnd('/')}/swagger/v1/swagger.json", "AI API v1");
-        
-        // Log để debug
-        Log.Information("Swagger URLs configured:");
-        Log.Information("Auth URL: {AuthUrl}", authUrl);
-        Log.Information("Discovery URL: {DiscoveryUrl}", discoveryUrl);
-        Log.Information("Social URL: {SocialUrl}", socialUrl);
-        Log.Information("AI URL: {AiUrl}", aiUrl);
+        // Production: use proxied swagger endpoints through the gateway
+        c.SwaggerEndpoint("/swagger/auth/v1/swagger.json", "Auth API v1");
+        c.SwaggerEndpoint("/swagger/discovery/v1/swagger.json", "Discovery API v1");
+        c.SwaggerEndpoint("/swagger/social/v1/swagger.json", "Social API v1");
+        c.SwaggerEndpoint("/swagger/ai/v1/swagger.json", "AI API v1");
     }
 
     c.RoutePrefix = string.Empty; // Swagger UI tại root "/"
