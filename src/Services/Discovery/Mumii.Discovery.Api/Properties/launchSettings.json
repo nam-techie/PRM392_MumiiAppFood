@@ -3,12 +3,13 @@
     "Mumii.Discovery.Api": {
       "commandName": "Project",
       "launchBrowser": true,
+      "dotnetRunMessages": true,
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "MongoDB__ConnectionString": "mongodb+srv://mumii:nam180259@mumiiapp.af3ygoe.mongodb.net/?retryWrites=true&w=majority&appName=mumiiApp",
-        "MongoDB__DatabaseName": "mumii_app"
+        "MongoDB__ConnectionString": "mongodb+srv://mumii_discovery:mumii_discovery@mumii-discovery.ik6c7st.mongodb.net/?retryWrites=true&w=majority&appName=mumii-discovery",
+        "MongoDB__DatabaseName": "mumii_discovery"
       },
-      "applicationUrl": "https://localhost:51491;http://localhost:51494"
+      "applicationUrl": "http://localhost:8082;https://localhost:8442"
     }
   }
 }

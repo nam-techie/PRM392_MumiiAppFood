@@ -3,10 +3,14 @@
     "Mumii.AI.Api": {
       "commandName": "Project",
       "launchBrowser": true,
+      "dotnetRunMessages": true,
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "MongoDB__ConnectionString": "mongodb+srv://mumii_ai:mumii_ai@mumii-ai.qxttywo.mongodb.net/?retryWrites=true&w=majority&appName=mumii-ai",
+        "MongoDB__DatabaseName": "mumii_ai",
+        "SWAGGER_ENABLED": "true"
       },
-      "applicationUrl": "https://localhost:51489;http://localhost:51498"
+      "applicationUrl": "http://localhost:8084;https://localhost:8444"
     }
   }
 }
