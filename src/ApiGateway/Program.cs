@@ -1,10 +1,14 @@
 using Serilog;
 using DotNetEnv;
+using Yarp.ReverseProxy.Configuration;
 
 // Load .env file
 Env.Load();
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Add environment variables to configuration
+builder.Configuration.AddEnvironmentVariables();
 
 // Cấu hình Serilog
 builder.Host.UseSerilog((context, configuration) =>
@@ -76,6 +80,13 @@ app.UseSwaggerUI(c =>
             c.SwaggerEndpoint($"{socialUrl.TrimEnd('/')}/swagger/v1/swagger.json", "Social API v1");
         if (!string.IsNullOrWhiteSpace(aiUrl))
             c.SwaggerEndpoint($"{aiUrl.TrimEnd('/')}/swagger/v1/swagger.json", "AI API v1");
+        
+        // Log để debug
+        Log.Information("Swagger URLs configured:");
+        Log.Information("Auth URL: {AuthUrl}", authUrl);
+        Log.Information("Discovery URL: {DiscoveryUrl}", discoveryUrl);
+        Log.Information("Social URL: {SocialUrl}", socialUrl);
+        Log.Information("AI URL: {AiUrl}", aiUrl);
     }
 
     c.RoutePrefix = string.Empty; // Swagger UI tại root "/"
