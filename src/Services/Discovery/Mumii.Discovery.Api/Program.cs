@@ -7,6 +7,9 @@ Env.Load();
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Allow environment variables to override configuration
+builder.Configuration.AddEnvironmentVariables();
+
 // Cấu hình Serilog
 builder.Host.UseSerilog((context, configuration) =>
     configuration.ReadFrom.Configuration(context.Configuration));
