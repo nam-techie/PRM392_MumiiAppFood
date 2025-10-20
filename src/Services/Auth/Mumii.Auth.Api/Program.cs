@@ -5,6 +5,9 @@ using Microsoft.IdentityModel.Tokens;
 using Mumii.Auth.Infrastructure;
 using Serilog;
 using DotNetEnv;
+using Mumii.Auth.Domain.Interfaces;     
+using Mumii.Auth.Infrastructure.Services;
+using Mumii.Auth.Infrastructure.Settings;
 
 // Load .env file
 Env.Load();
@@ -20,6 +23,18 @@ builder.Host.UseSerilog((context, configuration) =>
 
 // Add services to the container
 builder.Services.AddControllers();
+
+// Đăng ký dịch vụ cache trong bộ nhớ (cần thiết cho TokenCacheService)
+builder.Services.AddMemoryCache();
+
+// Đăng ký ITokenCacheService với triển khai TokenCacheService
+builder.Services.AddScoped<ITokenCacheService, TokenCacheService>();
+
+// Cấu hình MailSettings từ appsettings.json
+builder.Services.Configure<MailSettings>(builder.Configuration.GetSection("MailSettings"));
+
+// Đăng ký Email Service
+builder.Services.AddScoped<IEmailService, SendGridEmailService>();
 
 // Swagger/OpenAPI
 builder.Services.AddEndpointsApiExplorer();

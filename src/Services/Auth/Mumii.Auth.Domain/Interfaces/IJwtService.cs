@@ -1,4 +1,5 @@
 using Mumii.Auth.Domain.Entities;
+using System.Security.Claims;
 
 namespace Mumii.Auth.Domain.Interfaces;
 
@@ -31,4 +32,6 @@ public interface IJwtService
     /// Get account ID từ token
     /// </summary>
     string? GetAccountIdFromToken(string token);
+
+    ClaimsPrincipal? GetClaimsPrincipalFromExpiredToken(string token);
 }

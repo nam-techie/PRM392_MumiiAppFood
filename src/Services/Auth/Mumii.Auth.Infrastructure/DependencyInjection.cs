@@ -46,6 +46,10 @@ public static class DependencyInjection
 
         // Services
         services.AddScoped<IJwtService, JwtService>();
+        services.AddScoped<ITokenCacheService, TokenCacheService>();
+        
+        // Memory Cache for token storage
+        services.AddMemoryCache();
 
         return services;
     }

@@ -15,10 +15,13 @@ public static class ApiRoutes
         public const string Base = $"{BaseUrl}/auth";
         public const string Register = $"{Base}/register";
         public const string Login = $"{Base}/login";
+        public const string GoogleLogin = $"{Base}/google";
         public const string RefreshToken = $"{Base}/refresh";
         public const string Logout = $"{Base}/logout";
         public const string Profile = $"{Base}/profile";
         public const string ChangePassword = $"{Base}/change-password";
+        public const string ForgotPassword = $"{Base}/forgot-password";
+        public const string ResetPassword = $"{Base}/reset-password";
     }
     
     /// <summary>

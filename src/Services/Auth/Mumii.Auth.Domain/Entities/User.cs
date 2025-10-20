@@ -176,6 +176,19 @@ public class User
     }
 
     /// <summary>
+    /// Đặt lại mật khẩu mới mà không cần mật khẩu cũ (dùng cho chức năng quên mật khẩu).
+    /// </summary>
+    public void SetNewPassword(string newPassword)
+    {
+        // Bạn có thể thêm các logic validate mật khẩu mới ở đây nếu cần
+        if (string.IsNullOrWhiteSpace(newPassword) || newPassword.Length < 6)
+        {
+            throw new ArgumentException("Mật khẩu mới không hợp lệ.", nameof(newPassword));
+        }
+        Password = BCrypt.Net.BCrypt.HashPassword(newPassword);
+    }
+
+    /// <summary>
     /// Cập nhật thông tin cơ bản
     /// </summary>
     public void UpdateBasicInfo(string fullname)

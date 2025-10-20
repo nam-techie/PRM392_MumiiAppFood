@@ -6,6 +6,7 @@ using Mumii.Auth.Infrastructure.Services;
 using Mumii.Shared.Common.Constants;
 using Mumii.Shared.Common.DTOs;
 using Mumii.Shared.Common.Models;
+using Google.Apis.Auth;
 
 namespace Mumii.Auth.Api.Controllers;
 
@@ -20,17 +21,23 @@ public class AuthController : ControllerBase
     private readonly IJwtService _jwtService;
     private readonly IMongoIdGenerator _idGenerator;
     private readonly ILogger<AuthController> _logger;
+    private readonly ITokenCacheService _tokenCache; 
+    private readonly IEmailService _emailService;
 
     public AuthController(
         IUserRepository userRepository,
         IJwtService jwtService,
         IMongoIdGenerator idGenerator,
-        ILogger<AuthController> logger)
+        ILogger<AuthController> logger,
+        ITokenCacheService tokenCache,
+        IEmailService emailService)
     {
         _userRepository = userRepository;
         _jwtService = jwtService;
         _idGenerator = idGenerator;
         _logger = logger;
+        _tokenCache = tokenCache;
+        _emailService = emailService;
     }
 
     /// <summary>
@@ -90,7 +97,7 @@ public class AuthController : ControllerBase
         {
             _logger.LogError(ex, "Error during registration for email: {Email}", request.Email);
             return StatusCode(500, ApiResponse<LoginResponse>.ErrorResult(
-                "Lỗi hệ thống", 
+                "Lỗi hệ thống",
                 "Đã xảy ra lỗi trong quá trình đăng ký"));
         }
     }
@@ -165,18 +172,52 @@ public class AuthController : ControllerBase
     {
         try
         {
-            // Trong thực tế, cần validate refresh token từ database
-            // Để đơn giản, ở đây chỉ generate token mới
-            return Ok(ApiResponse<LoginResponse>.ErrorResult(
-                "Chưa triển khai",
-                "Refresh token chưa được triển khai"));
+            // Fix: Changed method name based on common practice and compiler error.
+            // The error on 'request.AccessToken' is likely related, as the correct method
+            // may be an extension method that resolves it.
+            var principal = _jwtService.GetClaimsPrincipalFromExpiredToken(request.AccessToken);
+            if (principal == null)
+                return BadRequest(ApiResponse<LoginResponse>.ErrorResult("Token không hợp lệ", "Access token không hợp lệ"));
+
+            var email = principal.Identity?.Name;
+            if (string.IsNullOrEmpty(email))
+                return BadRequest(ApiResponse<LoginResponse>.ErrorResult("Token không hợp lệ", "Không xác định được user từ token"));
+
+            var user = await _userRepository.GetByEmailAsync(email, cancellationToken);
+            if (user == null)
+                return NotFound(ApiResponse<LoginResponse>.ErrorResult("Không tìm thấy", "Người dùng không tồn tại"));
+
+            // Validate refresh token
+            var savedToken = await _tokenCache.GetRefreshTokenAsync(user.Id);
+            if (savedToken != request.RefreshToken)
+                return Unauthorized(ApiResponse<LoginResponse>.ErrorResult("Token hết hạn", "Refresh token không hợp lệ hoặc đã hết hạn"));
+
+            // Tạo token mới
+            var newAccessToken = _jwtService.GenerateAccessTokenForUser(user);
+            var newRefreshToken = _jwtService.GenerateRefreshToken();
+            await _tokenCache.SaveRefreshTokenAsync(user.Id, newRefreshToken, TimeSpan.FromDays(7));
+
+            var response = new LoginResponse(
+                AccessToken: newAccessToken,
+                RefreshToken: newRefreshToken,
+                User: new UserDto(
+                    user.Id,
+                    user.Email,
+                    user.Fullname,
+                    user.Role,
+                    user.IsActive,
+                    user.LoginMethod,
+                    user.CreatedAt,
+                    null
+                )
+            );
+
+            return Ok(ApiResponse<LoginResponse>.SuccessResult(response, "Làm mới token thành công"));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error during token refresh");
-            return StatusCode(500, ApiResponse<LoginResponse>.ErrorResult(
-                "Lỗi hệ thống",
-                "Đã xảy ra lỗi trong quá trình refresh token"));
+            _logger.LogError(ex, "Error refreshing token");
+            return StatusCode(500, ApiResponse<LoginResponse>.ErrorResult("Lỗi hệ thống", "Không thể làm mới token"));
         }
     }
 
@@ -352,5 +393,159 @@ public class AuthController : ControllerBase
         // Để đơn giản, chỉ trả về success
         await Task.CompletedTask;
         return Ok(ApiResponse.SuccessResult("Đăng xuất thành công"));
+    }
+
+    /// <summary>
+    /// Đăng nhập bằng Google
+    /// </summary>
+    [HttpPost("google")]
+    public async Task<ActionResult<ApiResponse<LoginResponse>>> GoogleLogin(
+        [FromBody] GoogleLoginRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            // Xác minh token từ Google
+            var payload = await GoogleJsonWebSignature.ValidateAsync(request.IdToken);
+            var email = payload.Email;
+            var fullname = payload.Name ?? "Người dùng Google";
+
+            // Tìm hoặc tạo user
+            var user = await _userRepository.GetByEmailAsync(email, cancellationToken);
+            if (user == null)
+            {
+                var newId = await _idGenerator.GetNextIdAsync("users", cancellationToken);
+
+                user = Mumii.Auth.Domain.Entities.User.CreateWithEmail(newId, email, Guid.NewGuid().ToString("N"), fullname);
+
+                await _userRepository.AddAsync(user, cancellationToken);
+                _logger.LogInformation("New Google user created: {Email}", email);
+            }
+
+            if (!user.IsActive)
+            {
+                return BadRequest(ApiResponse<LoginResponse>.ErrorResult("Tài khoản bị khóa", "Tài khoản đã bị vô hiệu hóa"));
+            }
+
+            // Tạo token
+            var accessToken = _jwtService.GenerateAccessTokenForUser(user);
+            var refreshToken = _jwtService.GenerateRefreshToken();
+            await _tokenCache.SaveRefreshTokenAsync(user.Id, refreshToken, TimeSpan.FromDays(7));
+
+            var response = new LoginResponse(
+                AccessToken: accessToken,
+                RefreshToken: refreshToken,
+                User: new UserDto(
+                    user.Id,
+                    user.Email,
+                    user.Fullname,
+                    user.Role,
+                    user.IsActive,
+                    user.LoginMethod,
+                    user.CreatedAt,
+                    null
+                )
+            );
+
+            return Ok(ApiResponse<LoginResponse>.SuccessResult(response, "Đăng nhập Google thành công"));
+        }
+        catch (InvalidJwtException)
+        {
+            return BadRequest(ApiResponse<LoginResponse>.ErrorResult("Token không hợp lệ", "Không thể xác thực Google token"));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during Google login");
+            return StatusCode(500, ApiResponse<LoginResponse>.ErrorResult("Lỗi hệ thống", "Lỗi trong quá trình đăng nhập Google"));
+        }
+    }
+
+
+    /// <summary>
+    /// Quên mật khẩu - Gửi OTP/Token reset
+    /// </summary>
+    [HttpPost("forgot-password")]
+    public async Task<ActionResult<ApiResponse>> ForgotPassword(
+        [FromBody] ForgotPasswordRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var user = await _userRepository.GetByEmailAsync(request.Email, cancellationToken);
+            if (user != null)
+            {
+                // 1. Tạo mã OTP ngẫu nhiên (6 chữ số)
+                var otp = new Random().Next(100000, 999999).ToString();
+
+                // 2. Lưu OTP vào cache với thời gian sống ngắn (ví dụ: 10 phút)
+                await _tokenCache.SaveOtpAsync(user.Email, otp, TimeSpan.FromMinutes(10));
+
+                // 3. Tạo nội dung email
+                var emailBody = $@"
+                <h1>Yêu cầu đặt lại mật khẩu</h1>
+                <p>Xin chào {user.Fullname},</p>
+                <p>Chúng tôi đã nhận được yêu cầu đặt lại mật khẩu cho tài khoản của bạn.</p>
+                <p>Mã OTP của bạn là: <strong>{otp}</strong></p>
+                <p>Mã này sẽ hết hạn sau 10 phút. Vui lòng không chia sẻ mã này với bất kỳ ai.</p>
+                <p>Trân trọng,<br>Đội ngũ Mumii App</p>";
+
+                // 4. Gửi email
+                await _emailService.SendEmailAsync(user.Email, "Mumii App - Yêu cầu đặt lại mật khẩu", emailBody);
+
+                _logger.LogInformation("Password reset OTP sent to email: {Email}", request.Email);
+            }
+            else
+            {
+                // Log lại để biết có request đến email không tồn tại, nhưng không báo lỗi cho người dùng
+                _logger.LogInformation("Password reset requested for non-existent email: {Email}", request.Email);
+            }
+
+            // Luôn trả về thành công để tránh kẻ tấn công dò xem email nào đã được đăng ký
+            return Ok(ApiResponse.SuccessResult("Nếu email của bạn tồn tại trong hệ thống, hướng dẫn đặt lại mật khẩu đã được gửi."));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during forgot password for email: {Email}", request.Email);
+            return StatusCode(500, ApiResponse.ErrorResult(
+                "Lỗi hệ thống",
+                "Đã xảy ra lỗi trong quá trình xử lý yêu cầu"));
+        }
+    }
+
+    /// <summary>
+    /// Đặt lại mật khẩu với OTP/Token
+    /// </summary>
+    [HttpPost("reset-password")]
+    public async Task<ActionResult<ApiResponse>> ResetPassword(
+        [FromBody] ResetPasswordRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var validOtp = await _tokenCache.GetOtpAsync(request.Email);
+            if (validOtp == null || validOtp != request.Otp)
+            {
+                return BadRequest(ApiResponse.ErrorResult("OTP không hợp lệ hoặc đã hết hạn", "OTP không đúng"));
+            }
+
+            var user = await _userRepository.GetByEmailAsync(request.Email, cancellationToken);
+            if (user == null)
+                return NotFound(ApiResponse.ErrorResult("Không tìm thấy tài khoản", "Email không tồn tại"));
+
+            // Đặt lại mật khẩu mới
+            user.SetNewPassword(request.NewPassword);
+            await _userRepository.UpdateAsync(user, cancellationToken);
+
+            // Xóa OTP sau khi dùng
+            await _tokenCache.DeleteOtpAsync(request.Email);
+
+            _logger.LogInformation("Password reset successful for {Email}", request.Email);
+            return Ok(ApiResponse.SuccessResult("Đặt lại mật khẩu thành công"));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error resetting password");
+            return StatusCode(500, ApiResponse.ErrorResult("Lỗi hệ thống", "Không thể đặt lại mật khẩu"));
+        }
     }
 }
