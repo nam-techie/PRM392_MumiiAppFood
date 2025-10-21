@@ -103,6 +103,72 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
+    /// Đăng ký tài khoản mới cho đối tác
+    /// </summary>
+    [HttpPost("register-partner")]
+    public async Task<ActionResult<ApiResponse<LoginResponse>>> RegisterPartner(
+        [FromBody] RegisterRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            // Kiểm tra email đã tồn tại
+            var existingUser = await _userRepository.GetByEmailAsync(request.Email, cancellationToken);
+            if (existingUser != null)
+            {
+                return BadRequest(ApiResponse<LoginResponse>.ErrorResult(
+                    "Email đã được sử dụng",
+                    "Email này đã có tài khoản"));
+            }
+
+            // Generate ID cho user mới
+            var userId = await _idGenerator.GetNextIdAsync("users", cancellationToken);
+
+            // Tạo user mới
+            var newUser = Mumii.Auth.Domain.Entities.User.CreateWithEmail(userId, request.Email, request.Password, request.Fullname);
+            
+            // Gán vai trò là Partner
+            newUser.SetRole("Partner");
+            
+            await _userRepository.AddAsync(newUser, cancellationToken);
+
+            // Generate tokens
+            var accessToken = _jwtService.GenerateAccessTokenForUser(newUser);
+            var refreshToken = _jwtService.GenerateRefreshToken();
+
+            var response = new LoginResponse(
+                AccessToken: accessToken,
+                RefreshToken: refreshToken,
+                User: new UserDto(
+                    newUser.Id,
+                    newUser.Email,
+                    newUser.Fullname,
+                    newUser.Role,
+                    newUser.IsActive,
+                    newUser.LoginMethod,
+                    newUser.CreatedAt,
+                    null // Profile - sẽ được tạo riêng
+                )
+            );
+
+            _logger.LogInformation("Partner registered successfully: {Email}", request.Email);
+            return Ok(ApiResponse<LoginResponse>.SuccessResult(response, "Đăng ký tài khoản đối tác thành công"));
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning("Registration validation failed: {Message}", ex.Message);
+            return BadRequest(ApiResponse<LoginResponse>.ErrorResult("Dữ liệu không hợp lệ", ex.Message));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during registration for email: {Email}", request.Email);
+            return StatusCode(500, ApiResponse<LoginResponse>.ErrorResult(
+                "Lỗi hệ thống",
+                "Đã xảy ra lỗi trong quá trình đăng ký"));
+        }
+    }
+
+    /// <summary>
     /// Đăng nhập
     /// </summary>
     [HttpPost("login")]

@@ -200,41 +200,58 @@ public class ProfileController : ControllerBase
     /// </summary>
     [HttpPost("avatar")]
     [Authorize]
-    public async Task<ActionResult<ApiResponse<object>>> UploadAvatar(
-        IFormFile avatar,
-        CancellationToken cancellationToken)
+    public async Task<ActionResult<ApiResponse<object>>> UploadAvatar(IFormFile file, CancellationToken cancellationToken)
     {
         try
         {
-            var userIdStr = User.FindFirst("user_id")?.Value ??
-                           User.FindFirst("sub")?.Value;
-
+            var userIdStr = User.FindFirst("user_id")?.Value ?? User.FindFirst("sub")?.Value;
             if (string.IsNullOrEmpty(userIdStr) || !int.TryParse(userIdStr, out var userId))
             {
-                return Unauthorized(ApiResponse<object>.ErrorResult(
-                    "Không xác thực",
-                    "Token không hợp lệ"));
+                return Unauthorized(ApiResponse<object>.ErrorResult("Không xác thực", "Token không hợp lệ"));
             }
 
-            if (avatar == null || avatar.Length == 0)
+            if (file == null || file.Length == 0)
             {
-                return BadRequest(ApiResponse<object>.ErrorResult(
-                    "Dữ liệu không hợp lệ",
-                    "Vui lòng chọn file ảnh"));
+                return BadRequest(ApiResponse<object>.ErrorResult("Dữ liệu không hợp lệ", "Vui lòng chọn file ảnh"));
             }
 
-            // TODO: Implement file upload logic (S3, Cloudinary, etc.)
-            // For now, return not implemented
-            return Ok(ApiResponse<object>.ErrorResult(
-                "Chưa triển khai",
-                "Upload avatar chưa được triển khai"));
+            // Tìm profile của user
+            var profile = await _profileRepository.GetByUserIdAsync(userId, cancellationToken);
+            if (profile == null)
+            {
+                // Nếu chưa có profile, tạo một cái rỗng trước
+                var newProfileId = await _idGenerator.GetNextIdAsync("profiles", cancellationToken);
+                profile = Profile.Create(newProfileId, userId);
+                await _profileRepository.AddAsync(profile, cancellationToken);
+            }
+
+            // =================== THAY ĐỔI CHÍNH Ở ĐÂY ===================
+            // Mở luồng đọc từ file mà client gửi lên
+            await using var stream = file.OpenReadStream();
+
+            // Gọi service với Stream và FileName thay vì cả đối tượng IFormFile
+            var (url, publicId) = await _photoService.AddPhotoAsync(stream, file.FileName);
+            // ==========================================================
+
+            if (url == null || publicId == null)
+            {
+                return BadRequest(ApiResponse<object>.ErrorResult("Tải ảnh thất bại", "Không thể tải ảnh lên, vui lòng thử lại."));
+            }
+
+            // Cập nhật URL avatar vào profile và lưu lại
+            profile.UpdateAvatar(url);
+            await _profileRepository.UpdateAsync(profile, cancellationToken);
+            _logger.LogInformation("Avatar updated for user {UserId}", userId);
+
+            // Trả về URL của ảnh mới
+            return Ok(ApiResponse<object>.SuccessResult(new { avatarUrl = url }, "Tải lên avatar thành công"));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error uploading avatar");
             return StatusCode(500, ApiResponse<object>.ErrorResult(
-                "Lỗi hệ thống",
-                "Đã xảy ra lỗi khi tải lên avatar"));
+                "Lỗi hệ thống", "Đã xảy ra lỗi khi tải lên avatar"));
         }
     }
+
 }
