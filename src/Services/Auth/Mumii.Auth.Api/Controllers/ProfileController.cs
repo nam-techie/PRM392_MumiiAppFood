@@ -19,17 +19,20 @@ public class ProfileController : ControllerBase
     private readonly ILogger<ProfileController> _logger;
     private readonly IProfileRepository _profileRepository; 
     private readonly IMongoIdGenerator _idGenerator;
+    private readonly IPhotoService _photoService;
 
     public ProfileController(
         IUserRepository userRepository,
         IProfileRepository profileRepository,
         IMongoIdGenerator idGenerator,
-        ILogger<ProfileController> logger)
+        ILogger<ProfileController> logger,
+        IPhotoService photoService)
     {
         _userRepository = userRepository;
         _profileRepository = profileRepository;
         _idGenerator = idGenerator;
         _logger = logger;
+        _photoService = photoService;
     }
 
     /// <summary>
@@ -124,7 +127,7 @@ public class ProfileController : ControllerBase
                     "Không tìm thấy", "Tài khoản không tồn tại"));
             }
 
-            // Cập nhật họ tên của User (nếu có trong request)
+            // Cập nhật họ tên của User (nếu có trong request và có thay đổi)
             if (!string.IsNullOrWhiteSpace(request.Fullname) && user.Fullname != request.Fullname)
             {
                 user.UpdateBasicInfo(request.Fullname);
@@ -134,48 +137,43 @@ public class ProfileController : ControllerBase
             // Tìm profile của user
             var profile = await _profileRepository.GetByUserIdAsync(userId, cancellationToken);
 
-            // >>> LOGIC MỚI: Chuẩn hóa dữ liệu đầu vào <<<
             var gender = request.Gender == "Chưa cập nhật" ? null : request.Gender;
             var phoneNumber = request.PhoneNumber == "Chưa cập nhật" ? null : request.PhoneNumber;
             var address = request.Address == "Chưa cập nhật" ? null : request.Address;
 
             if (profile == null)
             {
-                // **TRƯỜNG HỢP 1: PROFILE CHƯA TỒN TẠI -> TẠO MỚI**
+                // **TẠO MỚI**
                 var newProfileId = await _idGenerator.GetNextIdAsync("profiles", cancellationToken);
-
                 profile = Profile.Create(
                     newProfileId,
                     userId,
-                    gender, // Dùng biến đã chuẩn hóa
-                    null,
-                    phoneNumber, // Dùng biến đã chuẩn hóa
-                    address // Dùng biến đã chuẩn hóa
+                    gender,
+                    null, // Avatar ban đầu là null
+                    phoneNumber,
+                    address
                 );
-
                 await _profileRepository.AddAsync(profile, cancellationToken);
                 _logger.LogInformation("Profile created for user {UserId}", userId);
             }
             else
             {
-                // **TRƯỜ-NG HỢP 2: PROFILE ĐÃ TỒN TẠI -> CẬP NHẬT**
-                profile.Update(
-                    gender, // Dùng biến đã chuẩn hóa
-                    null,
-                    phoneNumber, // Dùng biến đã chuẩn hóa
-                    address // Dùng biến đã chuẩn hóa
+                // **CẬP NHẬT**
+                profile.Update( // Phương thức Update này không cập nhật avatar
+                    gender,
+                    phoneNumber,
+                    address
                 );
-
                 await _profileRepository.UpdateAsync(profile, cancellationToken);
                 _logger.LogInformation("Profile updated for user {UserId}", userId);
             }
 
-            // Map kết quả sang DTO để trả về
+            // Map kết quả sang DTO để trả về (ĐÃ SỬA LỖI)
             var profileDto = new ProfileDto(
                 profile.Id,
                 profile.UserId,
                 profile.Gender,
-                profile.Avatar,
+                profile.Avatar, // Giữ lại avatar hiện có
                 profile.PhoneNumber,
                 profile.Address
             );

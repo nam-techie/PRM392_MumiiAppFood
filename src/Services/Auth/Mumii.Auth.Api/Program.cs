@@ -36,6 +36,11 @@ builder.Services.Configure<MailSettings>(builder.Configuration.GetSection("MailS
 // Đăng ký Email Service
 builder.Services.AddScoped<IEmailService, SendGridEmailService>();
 
+// Cấu hình CloudinarySettings
+builder.Services.Configure<CloudinarySettings>(builder.Configuration.GetSection("CloudinarySettings"));
+// Đăng ký PhotoService
+builder.Services.AddScoped<IPhotoService, PhotoService>();
+
 // Swagger/OpenAPI
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
