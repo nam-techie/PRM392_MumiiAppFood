@@ -139,7 +139,52 @@ POST /api/auth/logout
 Authorization: Bearer <access_token>
 ```
 
-### 7. Refresh Token (Chưa triển khai)
+### 7. Đăng nhập với Google
+```http
+POST /api/auth/google
+Content-Type: application/json
+
+{
+  "idToken": "google_id_token_here"
+}
+```
+
+**Response:** Tương tự như đăng ký/đăng nhập thông thường
+
+### 8. Quên mật khẩu
+```http
+POST /api/auth/forgot-password
+Content-Type: application/json
+
+{
+  "email": "user@example.com"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Nếu email tồn tại, bạn sẽ nhận được hướng dẫn đặt lại mật khẩu",
+  "data": null,
+  "errors": [],
+  "timestamp": "2024-01-01T00:00:00Z"
+}
+```
+
+### 9. Đặt lại mật khẩu
+```http
+POST /api/auth/reset-password
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "token": "123456",
+  "newPassword": "new_password123"
+}
+```
+
+### 10. Refresh Token
 ```http
 POST /api/auth/refresh
 Content-Type: application/json
@@ -149,7 +194,90 @@ Content-Type: application/json
 }
 ```
 
-### 8. MongoDB Test APIs
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Refresh token thành công",
+  "data": {
+    "accessToken": "new_access_token_here"
+  },
+  "errors": [],
+  "timestamp": "2024-01-01T00:00:00Z"
+}
+```
+
+### 11. Lấy thông tin profile chi tiết
+```http
+GET /api/auth/profile/me
+Authorization: Bearer <access_token>
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": null,
+  "data": {
+    "id": 1,
+    "email": "user@example.com",
+    "fullname": "John Doe",
+    "role": "User",
+    "isActive": true,
+    "loginMethod": "Email",
+    "createdAt": "2024-01-01T00:00:00Z",
+    "profile": {
+      "id": 1,
+      "userId": 1,
+      "gender": "Male",
+      "avatar": "https://cloudinary.com/avatar.jpg",
+      "phoneNumber": "0123456789",
+      "address": "123 Đường ABC, Quận 1, TP.HCM",
+      "createdAt": "2024-01-01T00:00:00Z"
+    }
+  }
+}
+```
+
+### 12. Cập nhật profile
+```http
+PUT /api/auth/profile/me
+Authorization: Bearer <access_token>
+Content-Type: application/json
+
+{
+  "fullname": "John Smith",
+  "gender": "Male",
+  "phoneNumber": "0987654321",
+  "address": "456 Đường XYZ, Quận 2, TP.HCM"
+}
+```
+
+### 13. Upload avatar
+```http
+POST /api/auth/profile/avatar
+Authorization: Bearer <access_token>
+Content-Type: multipart/form-data
+
+avatar: [file]
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Upload avatar thành công",
+  "data": {
+    "avatarUrl": "https://cloudinary.com/avatars/unique_filename.jpg"
+  },
+  "errors": [],
+  "timestamp": "2024-01-01T00:00:00Z"
+}
+```
+
+---
+
+## MongoDB Test APIs
 **Base URL:** `http://localhost:8081/api/mongo`
 
 #### Ping MongoDB

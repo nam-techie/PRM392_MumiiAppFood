@@ -46,6 +46,9 @@ public static class DependencyInjection
 
         // Services
         services.AddScoped<IJwtService, JwtService>();
+        services.AddScoped<IEmailService, EmailService>();
+        services.AddScoped<IGoogleAuthService, GoogleAuthService>();
+        services.AddScoped<ICloudinaryService, CloudinaryService>();
 
         return services;
     }

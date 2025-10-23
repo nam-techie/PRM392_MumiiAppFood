@@ -34,6 +34,12 @@ public class UserRepository : IUserRepository
         return await _users.Find(filter).FirstOrDefaultAsync(cancellationToken);
     }
 
+    public async Task<User?> GetByRefreshTokenAsync(string refreshToken, CancellationToken cancellationToken = default)
+    {
+        var filter = Builders<User>.Filter.Eq(u => u.RefreshToken, refreshToken);
+        return await _users.Find(filter).FirstOrDefaultAsync(cancellationToken);
+    }
+
     public async Task<User> AddAsync(User user, CancellationToken cancellationToken = default)
     {
         await _users.InsertOneAsync(user, cancellationToken: cancellationToken);

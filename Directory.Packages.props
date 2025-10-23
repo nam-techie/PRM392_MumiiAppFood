@@ -35,8 +35,13 @@
     <PackageVersion Include="Yarp.ReverseProxy" Version="2.2.0" />
     <PackageVersion Include="DotNetEnv" Version="3.0.0" />
     <!-- Google -->
-    <PackageVersion Include="Google.Apis.Auth" Version="1.67.0" />
+    <PackageVersion Include="Google.Apis.Auth" Version="1.68.0" />
     <PackageVersion Include="Google.Cloud.AIPlatform.V1" Version="2.25.0" />
+    <!-- Email -->
+    <PackageVersion Include="MailKit" Version="4.8.0" />
+    <PackageVersion Include="MimeKit" Version="4.8.0" />
+    <!-- Cloudinary -->
+    <PackageVersion Include="CloudinaryDotNet" Version="1.26.2" />
     <!-- MongoDB -->
     <PackageVersion Include="MongoDB.Driver" Version="2.29.0" />
     <PackageVersion Include="MongoDB.Bson" Version="2.29.0" />

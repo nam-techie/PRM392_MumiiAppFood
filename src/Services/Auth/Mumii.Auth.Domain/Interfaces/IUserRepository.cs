@@ -23,6 +23,11 @@ public interface IUserRepository
     Task<User?> GetByGoogleIdAsync(string googleId, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Tìm user theo refresh token
+    /// </summary>
+    Task<User?> GetByRefreshTokenAsync(string refreshToken, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Thêm user mới
     /// </summary>
     Task<User> AddAsync(User user, CancellationToken cancellationToken = default);

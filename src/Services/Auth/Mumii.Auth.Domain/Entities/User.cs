@@ -36,6 +36,22 @@ public class User
     [BsonIgnoreIfNull]
     public string? GoogleId { get; private set; }
     
+    [BsonElement("refresh_token")]
+    [BsonIgnoreIfNull]
+    public string? RefreshToken { get; private set; }
+    
+    [BsonElement("refresh_token_created_at")]
+    [BsonIgnoreIfNull]
+    public DateTime? RefreshTokenCreatedAt { get; private set; }
+    
+    [BsonElement("password_reset_token")]
+    [BsonIgnoreIfNull]
+    public string? PasswordResetToken { get; private set; }
+    
+    [BsonElement("password_reset_token_expiry")]
+    [BsonIgnoreIfNull]
+    public DateTime? PasswordResetTokenExpiry { get; private set; }
+    
     [BsonElement("created_at")]
     public DateTime CreatedAt { get; private set; } = DateTime.UtcNow;
     
@@ -240,6 +256,71 @@ public class User
         ));
 
         return notification;
+    }
+
+    /// <summary>
+    /// Generate password reset token (6 digits)
+    /// </summary>
+    public void GeneratePasswordResetToken()
+    {
+        var random = new Random();
+        var token = random.Next(100000, 999999).ToString(); // 6 digits
+        
+        PasswordResetToken = token;
+        PasswordResetTokenExpiry = DateTime.UtcNow.AddHours(1); // 1 hour expiry
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Reset password with token validation
+    /// </summary>
+    public void ResetPasswordWithToken(string token, string newPassword)
+    {
+        if (string.IsNullOrWhiteSpace(token))
+            throw new ArgumentException("Token không được để trống", nameof(token));
+            
+        if (string.IsNullOrWhiteSpace(newPassword))
+            throw new ArgumentException("Mật khẩu mới không được để trống", nameof(newPassword));
+
+        if (PasswordResetToken != token)
+            throw new UnauthorizedAccessException("Token không đúng");
+
+        if (PasswordResetTokenExpiry == null || DateTime.UtcNow > PasswordResetTokenExpiry)
+            throw new UnauthorizedAccessException("Token đã hết hạn");
+
+        if (newPassword.Length < 6)
+            throw new ArgumentException("Mật khẩu mới phải có ít nhất 6 ký tự", nameof(newPassword));
+
+        // Reset password
+        Password = BCrypt.Net.BCrypt.HashPassword(newPassword);
+        
+        // Clear reset token
+        PasswordResetToken = null;
+        PasswordResetTokenExpiry = null;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Set refresh token
+    /// </summary>
+    public void SetRefreshToken(string refreshToken)
+    {
+        if (string.IsNullOrWhiteSpace(refreshToken))
+            throw new ArgumentException("Refresh token không được để trống", nameof(refreshToken));
+
+        RefreshToken = refreshToken;
+        RefreshTokenCreatedAt = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Clear refresh token (on logout)
+    /// </summary>
+    public void ClearRefreshToken()
+    {
+        RefreshToken = null;
+        RefreshTokenCreatedAt = null;
+        UpdatedAt = DateTime.UtcNow;
     }
 
     /// <summary>

@@ -21,7 +21,23 @@ public record LoginRequest(
 /// DTO cho đăng nhập với Google
 /// </summary>
 public record GoogleLoginRequest(
-    string GoogleToken
+    string IdToken
+);
+
+/// <summary>
+/// DTO cho quên mật khẩu
+/// </summary>
+public record ForgotPasswordRequest(
+    string Email
+);
+
+/// <summary>
+/// DTO cho đặt lại mật khẩu
+/// </summary>
+public record ResetPasswordRequest(
+    string Email,
+    string Token,
+    string NewPassword
 );
 
 /// <summary>
@@ -38,6 +54,13 @@ public record LoginResponse(
 /// </summary>
 public record RefreshTokenRequest(
     string RefreshToken
+);
+
+/// <summary>
+/// DTO cho response refresh token
+/// </summary>
+public record RefreshTokenResponse(
+    string AccessToken
 );
 
 /// <summary>
@@ -83,10 +106,31 @@ public record NotificationDto(
 /// DTO cho cập nhật profile
 /// </summary>
 public record UpdateProfileRequest(
+    string? Fullname,
     string? Gender,
-    string? Avatar,
     string? PhoneNumber,
     string? Address
+);
+
+/// <summary>
+/// DTO cho profile detail (extend UserDto với Profile info)
+/// </summary>
+public record ProfileDetailDto(
+    int Id,
+    string Email,
+    string Fullname,
+    string Role,
+    bool IsActive,
+    string LoginMethod,
+    DateTime CreatedAt,
+    ProfileDto? Profile
+);
+
+/// <summary>
+/// DTO cho upload avatar response
+/// </summary>
+public record UploadAvatarResponse(
+    string AvatarUrl
 );
 
 /// <summary>
