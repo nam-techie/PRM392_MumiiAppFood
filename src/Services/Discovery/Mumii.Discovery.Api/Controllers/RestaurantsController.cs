@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Mumii.Discovery.Domain.Entities;
 using Mumii.Discovery.Domain.Interfaces;
@@ -177,51 +178,64 @@ public class RestaurantsController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Tạo nhà hàng mới (Admin only)
-    /// </summary>
+    // Xóa hoặc sửa lại endpoint POST cũ, vì giờ Partner sẽ tạo
     [HttpPost]
-    public async Task<ActionResult<ApiResponse<RestaurantDto>>> CreateRestaurant(
-        [FromBody] CreateRestaurantRequest request,
-        CancellationToken cancellationToken)
+    [Authorize(Roles = "Admin")]
+    public IActionResult CreateRestaurantByAdmin() 
     {
+        // Admin có thể vẫn cần chức năng này, nhưng logic sẽ khác
+        return Forbid("Admin should approve restaurants created by partners.");
+    }
+
+    /// <summary>
+    /// (Admin only) Duyệt một nhà hàng
+    /// </summary>
+    [HttpPost("{id}/approve")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult<ApiResponse>> ApproveRestaurant(int id)
+    {
+        var restaurant = await _restaurantRepository.GetByIdAsync(id);
+        if (restaurant == null) return NotFound();
+
+        try 
+        {
+            restaurant.Approve();
+            await _restaurantRepository.UpdateAsync(restaurant);
+            _logger.LogInformation("Admin approved restaurant {RestaurantId}", id);
+
+            // TODO: Gửi thông báo cho Partner
+            
+            return Ok(ApiResponse.SuccessResult("Duyệt nhà hàng thành công."));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse.ErrorResult(ex.Message));
+        }
+    }
+
+    /// <summary>
+    /// (Admin only) Từ chối một nhà hàng
+    /// </summary>
+    [HttpPost("{id}/decline")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult<ApiResponse>> DeclineRestaurant(int id)
+    {
+        var restaurant = await _restaurantRepository.GetByIdAsync(id);
+        if (restaurant == null) return NotFound();
+
         try
         {
-            var restaurant = Restaurant.Create(
-                id: 0, // will be generated in repository
-                partnerId: 0, // set actual partner later if needed
-                name: request.Name,
-                address: request.Address,
-                latitude: request.Latitude,
-                longitude: request.Longitude,
-                description: request.Description,
-                avgPrice: request.AvgPrice,
-                rating: 0,
-                status: "Active"
-            );
+            restaurant.Decline();
+            await _restaurantRepository.UpdateAsync(restaurant);
+            _logger.LogInformation("Admin declined restaurant {RestaurantId}", id);
 
-            await _restaurantRepository.AddAsync(restaurant, cancellationToken);
-            await _restaurantRepository.SaveChangesAsync(cancellationToken);
-
-            var restaurantDto = MapToDto(restaurant);
+            // TODO: Gửi thông báo cho Partner
             
-            _logger.LogInformation("Restaurant created: {RestaurantId}", restaurant.Id);
-            return CreatedAtAction(
-                nameof(GetRestaurant), 
-                new { id = restaurant.Id }, 
-                ApiResponse<RestaurantDto>.SuccessResult(restaurantDto, "Tạo nhà hàng thành công"));
+            return Ok(ApiResponse.SuccessResult("Từ chối nhà hàng thành công."));
         }
-        catch (ArgumentException ex)
+        catch (InvalidOperationException ex)
         {
-            _logger.LogWarning("Restaurant creation validation failed: {Message}", ex.Message);
-            return BadRequest(ApiResponse<RestaurantDto>.ErrorResult("Dữ liệu không hợp lệ", ex.Message));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error creating restaurant");
-            return StatusCode(500, ApiResponse<RestaurantDto>.ErrorResult(
-                "Lỗi hệ thống",
-                "Đã xảy ra lỗi trong quá trình tạo nhà hàng"));
+            return BadRequest(ApiResponse.ErrorResult(ex.Message));
         }
     }
 
@@ -229,6 +243,7 @@ public class RestaurantsController : ControllerBase
     /// Cập nhật nhà hàng (Admin only)
     /// </summary>
     [HttpPut("{id}")]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<ApiResponse<RestaurantDto>>> UpdateRestaurant(
         int id,
         [FromBody] UpdateRestaurantRequest request,
@@ -280,6 +295,7 @@ public class RestaurantsController : ControllerBase
     /// Xóa nhà hàng (Admin only)
     /// </summary>
     [HttpDelete("{id}")]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<ApiResponse>> DeleteRestaurant(
         int id,
         CancellationToken cancellationToken)

@@ -153,9 +153,7 @@ public class RestaurantRepository : IRestaurantRepository
                 latitude: restaurant.Latitude,
                 longitude: restaurant.Longitude,
                 description: restaurant.Description,
-                avgPrice: restaurant.AvgPrice,
-                rating: restaurant.Rating,
-                status: restaurant.Status
+                avgPrice: restaurant.AvgPrice
             );
         }
         await _restaurants.InsertOneAsync(restaurant, cancellationToken: cancellationToken);
@@ -186,6 +184,14 @@ public class RestaurantRepository : IRestaurantRepository
     {
         var count = await _restaurants.CountDocumentsAsync(r => r.Id == id, cancellationToken: cancellationToken);
         return count > 0;
+    }
+
+    /// <summary>
+    /// Lấy danh sách nhà hàng theo Partner ID
+    /// </summary>
+    public async Task<List<Restaurant>> GetByPartnerIdAsync(int partnerId, CancellationToken cancellationToken = default)
+    {
+        return await _restaurants.Find(r => r.PartnerId == partnerId).ToListAsync(cancellationToken);
     }
 
     /// <summary>

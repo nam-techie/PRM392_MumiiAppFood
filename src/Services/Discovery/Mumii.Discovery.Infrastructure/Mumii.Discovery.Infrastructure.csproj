@@ -9,6 +9,7 @@
   <ItemGroup>
     <ProjectReference Include="../../../Shared/Common/Mumii.Shared.Common.csproj" />
     <ProjectReference Include="../Mumii.Discovery.Domain/Mumii.Discovery.Domain.csproj" />
+	 <ProjectReference Include="..\..\Auth\Mumii.Auth.Domain\Mumii.Auth.Domain.csproj" />
   </ItemGroup>
 
   <ItemGroup>
