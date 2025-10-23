@@ -83,6 +83,36 @@ public class Restaurant
         UpdatedAt = DateTime.UtcNow;
     }
 
+    /// <summary>
+    /// Cập nhật thông tin nhà hàng bởi Admin.
+    /// Admin có thể cập nhật cả Rating và Status.
+    /// </summary>
+    public void UpdateByAdmin(
+        string name,
+        string address,
+        double? latitude = null,
+        double? longitude = null,
+        string? description = null,
+        double? avgPrice = null,
+        float? rating = null,
+        string? status = null)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            throw new ArgumentException("Tên nhà hàng không được để trống", nameof(name));
+        if (string.IsNullOrWhiteSpace(address))
+            throw new ArgumentException("Địa chỉ không được để trống", nameof(address));
+
+        Name = name.Trim();
+        Address = address.Trim();
+        Latitude = latitude;
+        Longitude = longitude;
+        Description = description?.Trim();
+        AvgPrice = avgPrice;
+        if (rating.HasValue) Rating = rating.Value;
+        if (!string.IsNullOrWhiteSpace(status)) Status = status!;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
     // Phương thức cho Admin duyệt
     public void Approve()
     {

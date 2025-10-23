@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Mumii.Auth.Domain.Interfaces; // <-- Sẽ hoạt động sau khi thêm reference
+using Microsoft.Extensions.Logging;
+using Mumii.Auth.Infrastructure.Services;
 using Mumii.Discovery.Domain.Entities;
 using Mumii.Discovery.Domain.Interfaces;
 using Mumii.Shared.Common.Constants;
@@ -22,7 +23,6 @@ public class PartnerRestaurantsController : ControllerBase
     private readonly IMongoIdGenerator _idGenerator;
     private readonly ILogger<PartnerRestaurantsController> _logger;
     
-    // SỬA LẠI CONSTRUCTOR CHO ĐÚNG
     public PartnerRestaurantsController(
         IRestaurantRepository restaurantRepository, 
         IMongoIdGenerator idGenerator, 
@@ -62,7 +62,6 @@ public class PartnerRestaurantsController : ControllerBase
             var restaurantDto = MapToDto(restaurant);
             _logger.LogInformation("Partner {PartnerId} created restaurant {RestaurantId}", partnerId, restaurant.Id);
             
-            // SỬA LẠI: Trỏ đến endpoint GetMyRestaurantById
             return CreatedAtAction(
                 nameof(GetMyRestaurantById), 
                 new { id = restaurant.Id }, 
@@ -80,11 +79,10 @@ public class PartnerRestaurantsController : ControllerBase
     /// <summary>
     /// Partner lấy danh sách nhà hàng của mình
     /// </summary>
-    [HttpGet] // Route gốc cho danh sách
+    [HttpGet]
     public async Task<ActionResult<ApiResponse<List<RestaurantDto>>>> GetMyRestaurants()
     {
         var partnerId = GetPartnerId();
-        // Giả sử bạn có phương thức này trong repository
         var restaurants = await _restaurantRepository.GetByPartnerIdAsync(partnerId); 
         var dtos = restaurants.Select(MapToDto).ToList();
         return Ok(ApiResponse<List<RestaurantDto>>.SuccessResult(dtos));
@@ -93,7 +91,7 @@ public class PartnerRestaurantsController : ControllerBase
     /// <summary>
     /// Partner lấy một nhà hàng cụ thể của mình theo ID
     /// </summary>
-    [HttpGet("{id:int}")] // THÊM ENDPOINT NÀY
+    [HttpGet("{id:int}")]
     public async Task<ActionResult<ApiResponse<RestaurantDto>>> GetMyRestaurantById(int id)
     {
         var partnerId = GetPartnerId();
@@ -122,7 +120,6 @@ public class PartnerRestaurantsController : ControllerBase
             return Forbid(); // Hoặc NotFound
         }
         
-        // Giả sử bạn có phương thức này trong Entity
         restaurant.UpdateByPartner(request.Name, request.Address, request.Description, request.AvgPrice); 
         await _restaurantRepository.UpdateAsync(restaurant);
         
@@ -130,23 +127,22 @@ public class PartnerRestaurantsController : ControllerBase
         return Ok(ApiResponse<RestaurantDto>.SuccessResult(restaurantDto));
     }
 
-    // Sửa lại MapToDto để khớp với RestaurantDto (record type)
     private static RestaurantDto MapToDto(Restaurant r) {
         return new RestaurantDto(
             r.Id,
             r.PartnerId,
             r.Name,
             r.Address,
-            (decimal?)r.Longitude, // Ép kiểu nếu cần
-            (decimal?)r.Latitude,
+            r.Longitude,
+            r.Latitude,
             r.Description,
-            (decimal?)r.AvgPrice,
+            r.AvgPrice,
             r.Rating,
             r.Status,
             r.CreatedAt,
-            new List<RestaurantImageDto>(), // Giả định
-            new List<ReviewDto>(),          // Giả định
-            0                               // Giả định
+            new List<RestaurantImageDto>(),
+            new List<ReviewDto>(),
+            0
         );
     }
 }

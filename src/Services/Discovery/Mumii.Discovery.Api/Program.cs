@@ -2,6 +2,8 @@ using Mumii.Discovery.Infrastructure;
 using Serilog;
 using DotNetEnv;
 using System.Linq;
+using Mumii.Auth.Domain.Interfaces;
+using Mumii.Auth.Infrastructure.Services;
 
 // Load .env file
 Env.Load();
@@ -27,6 +29,9 @@ builder.Services.AddSwaggerGen(c =>
 
 // Infrastructure services
 builder.Services.AddInfrastructure(builder.Configuration);
+
+// Register IMongoIdGenerator
+builder.Services.AddScoped<IMongoIdGenerator, MongoIdGenerator>();
 
 // CORS cấu hình theo biến môi trường CORS__AllowedOrigins
 var allowedOrigins = (Environment.GetEnvironmentVariable("CORS__AllowedOrigins") ?? string.Empty)
