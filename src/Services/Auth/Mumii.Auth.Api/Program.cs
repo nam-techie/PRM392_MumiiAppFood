@@ -51,7 +51,7 @@ builder.Services.AddSwaggerGen(c =>
         Version = "v1",
         Description = "ASP.NET Core Web API with JWT Bearer Authentication"
     });
-    
+
     // JWT Bearer authorization trong Swagger - theo chuẩn OpenAPI
     c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
     {
@@ -64,7 +64,7 @@ builder.Services.AddSwaggerGen(c =>
         Scheme = "Bearer",
         BearerFormat = "JWT"
     });
-    
+
     c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement()
     {
         {
@@ -88,7 +88,7 @@ builder.Services.AddSwaggerGen(c =>
 builder.Services.AddInfrastructure(builder.Configuration);
 
 // JWT Authentication - chỉ từ environment variable
-var jwtKey = Environment.GetEnvironmentVariable("JWT_SECRET_KEY") ?? 
+var jwtKey = Environment.GetEnvironmentVariable("JWT_SECRET_KEY") ??
              builder.Configuration["Jwt:Key"];
 
 if (string.IsNullOrEmpty(jwtKey))

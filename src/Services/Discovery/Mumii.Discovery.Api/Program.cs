@@ -1,9 +1,13 @@
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 using Mumii.Discovery.Infrastructure;
 using Serilog;
 using DotNetEnv;
 using System.Linq;
 using Mumii.Auth.Domain.Interfaces;
 using Mumii.Auth.Infrastructure.Services;
+using Microsoft.OpenApi.Models; // <-- Added this using statement
 
 // Load .env file
 Env.Load();
@@ -22,9 +26,46 @@ builder.Services.AddControllers();
 
 // Swagger/OpenAPI
 builder.Services.AddEndpointsApiExplorer();
+
+// THAY THẾ TOÀN BỘ KHỐI AddSwaggerGen BẰNG CODE NÀY
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new() { Title = "Mumii Discovery API", Version = "v1" });
+    c.SwaggerDoc("v1", new OpenApiInfo 
+    { 
+        Title = "Mumii Discovery API", // Sửa tên cho phù hợp với từng project
+        Version = "v1" 
+    });
+
+    // 1. Định nghĩa Security Scheme (Cách Swagger hiểu về Bearer Token)
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Description = @"JWT Authorization header using the Bearer scheme. 
+                      Enter 'Bearer' [space] and then your token in the text input below.
+                      Example: 'Bearer 12345abcdef'",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.ApiKey,
+        Scheme = "Bearer"
+    });
+
+    // 2. Yêu cầu Swagger áp dụng Security Scheme này cho các endpoint
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement()
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                },
+                Scheme = "oauth2",
+                Name = "Bearer",
+                In = ParameterLocation.Header,
+            },
+            new List<string>()
+        }
+    });
 });
 
 // Infrastructure services
@@ -32,6 +73,39 @@ builder.Services.AddInfrastructure(builder.Configuration);
 
 // Register IMongoIdGenerator
 builder.Services.AddScoped<IMongoIdGenerator, MongoIdGenerator>();
+
+// JWT Authentication
+var jwtKey = Environment.GetEnvironmentVariable("JWT_SECRET_KEY") ?? 
+             builder.Configuration["Jwt:Key"];
+
+if (string.IsNullOrEmpty(jwtKey))
+{
+    throw new InvalidOperationException("JWT_SECRET_KEY là bắt buộc!");
+}
+
+var key = Encoding.UTF8.GetBytes(jwtKey);
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.RequireHttpsMetadata = false;
+    options.SaveToken = true;
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(key),
+        ValidateIssuer = true,
+        ValidIssuer = builder.Configuration["Jwt:Issuer"] ?? "Mumii",
+        ValidateAudience = true,
+        ValidAudience = builder.Configuration["Jwt:Audience"] ?? "Mumii.Client",
+        ValidateLifetime = true,
+        ClockSkew = TimeSpan.Zero
+    };
+});
 
 // CORS cấu hình theo biến môi trường CORS__AllowedOrigins
 var allowedOrigins = (Environment.GetEnvironmentVariable("CORS__AllowedOrigins") ?? string.Empty)
@@ -76,7 +150,7 @@ if (enableSwagger)
             var scheme = httpReq.Headers["X-Forwarded-Proto"].FirstOrDefault() ?? httpReq.Scheme;
             var host = httpReq.Headers["X-Forwarded-Host"].FirstOrDefault() ?? httpReq.Host.Value;
             var basePath = Environment.GetEnvironmentVariable("SWAGGER_BASE_PATH") ?? string.Empty;
-            swagger.Servers = new List<Microsoft.OpenApi.Models.OpenApiServer>
+            swagger.Servers = new List<OpenApiServer>
             {
                 new() { Url = $"{scheme}://{host}{basePath}" }
             };
@@ -105,6 +179,7 @@ app.UseSerilogRequestLogging();
 
 app.UseCors("default");
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
