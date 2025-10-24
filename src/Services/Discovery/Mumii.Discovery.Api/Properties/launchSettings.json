@@ -7,7 +7,11 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
         "MongoDB__ConnectionString": "mongodb+srv://mumii_discovery:mumii_discovery@mumii-discovery.ik6c7st.mongodb.net/?retryWrites=true&w=majority&appName=mumii-discovery",
-        "MongoDB__DatabaseName": "mumii_discovery"
+        "MongoDB__DatabaseName": "mumii_discovery",
+        "JWT_SECRET_KEY": "<REPLACE_WITH_MIN_32_CHAR_SECRET>",
+        "Jwt__Issuer": "Mumii",
+        "Jwt__Audience": "Mumii.Client",
+        "Jwt__ExpiryHours": "24"
       },
       "applicationUrl": "http://localhost:8082;https://localhost:8442"
     }

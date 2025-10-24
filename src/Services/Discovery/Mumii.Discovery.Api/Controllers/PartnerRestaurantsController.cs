@@ -32,8 +32,25 @@ public class PartnerRestaurantsController : ControllerBase
         _idGenerator = idGenerator;
         _logger = logger;
     }
-    
-    private int GetPartnerId() => int.Parse(User.FindFirstValue("user_id")!);
+
+    private int GetPartnerId()
+    {
+        var userIdClaim = User.FindFirstValue("user_id")
+                          ?? User.FindFirstValue("nameid")
+                          ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (string.IsNullOrEmpty(userIdClaim))
+            throw new UnauthorizedAccessException("Không tìm thấy user_id trong token.");
+
+        return int.Parse(userIdClaim);
+    }
+
+    [HttpGet("debug")]
+    public IActionResult DebugClaims()
+    {
+        var claims = User.Claims.Select(c => new { c.Type, c.Value }).ToList();
+        return Ok(claims);
+    }
 
     /// <summary>
     /// Partner tạo nhà hàng mới

@@ -8,6 +8,7 @@ using System.Linq;
 using Mumii.Auth.Domain.Interfaces;
 using Mumii.Auth.Infrastructure.Services;
 using Microsoft.OpenApi.Models; // <-- Added this using statement
+using System.IdentityModel.Tokens.Jwt;
 
 // Load .env file
 Env.Load();
@@ -27,41 +28,43 @@ builder.Services.AddControllers();
 // Swagger/OpenAPI
 builder.Services.AddEndpointsApiExplorer();
 
-// THAY THẾ TOÀN BỘ KHỐI AddSwaggerGen BẰNG CODE NÀY
+// Swagger/OpenAPI
+builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new OpenApiInfo 
-    { 
-        Title = "Mumii Discovery API", // Sửa tên cho phù hợp với từng project
-        Version = "v1" 
-    });
-
-    // 1. Định nghĩa Security Scheme (Cách Swagger hiểu về Bearer Token)
-    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
     {
-        Description = @"JWT Authorization header using the Bearer scheme. 
-                      Enter 'Bearer' [space] and then your token in the text input below.
-                      Example: 'Bearer 12345abcdef'",
-        Name = "Authorization",
-        In = ParameterLocation.Header,
-        Type = SecuritySchemeType.ApiKey,
-        Scheme = "Bearer"
+        Title = "Mumii Auth API",
+        Version = "v1",
+        Description = "ASP.NET Core Web API with JWT Bearer Authentication"
     });
 
-    // 2. Yêu cầu Swagger áp dụng Security Scheme này cho các endpoint
-    c.AddSecurityRequirement(new OpenApiSecurityRequirement()
+    // JWT Bearer authorization trong Swagger - theo chuẩn OpenAPI
+    c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    {
+        Description = "JWT Authorization header using the Bearer scheme. " +
+                     "Enter 'Bearer' [space] and then your token in the text input below.\\n\\n" +
+                     "Example: \"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\"",
+        Name = "Authorization",
+        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
+        Scheme = "Bearer",
+        BearerFormat = "JWT"
+    });
+
+    c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement()
     {
         {
-            new OpenApiSecurityScheme
+            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
             {
-                Reference = new OpenApiReference
+                Reference = new Microsoft.OpenApi.Models.OpenApiReference
                 {
-                    Type = ReferenceType.SecurityScheme,
+                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
                     Id = "Bearer"
                 },
                 Scheme = "oauth2",
                 Name = "Bearer",
-                In = ParameterLocation.Header,
+                In = Microsoft.OpenApi.Models.ParameterLocation.Header,
             },
             new List<string>()
         }
@@ -85,6 +88,10 @@ if (string.IsNullOrEmpty(jwtKey))
 
 var key = Encoding.UTF8.GetBytes(jwtKey);
 
+JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
+JwtSecurityTokenHandler.DefaultOutboundClaimTypeMap.Clear();
+JwtSecurityTokenHandler.DefaultMapInboundClaims = false;
+
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -103,7 +110,9 @@ builder.Services.AddAuthentication(options =>
         ValidateAudience = true,
         ValidAudience = builder.Configuration["Jwt:Audience"] ?? "Mumii.Client",
         ValidateLifetime = true,
-        ClockSkew = TimeSpan.Zero
+        ClockSkew = TimeSpan.Zero,
+        RoleClaimType = "role",
+        NameClaimType = "user_id" 
     };
 });
 
