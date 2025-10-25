@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Mumii.Discovery.Domain.Entities;
 using Mumii.Discovery.Domain.Interfaces;
+using Mumii.Auth.Domain.Interfaces;
 using Mumii.Shared.Common.Constants;
 using Mumii.Shared.Common.DTOs;
 using Mumii.Shared.Common.Models;
@@ -303,7 +304,6 @@ public class RestaurantsController : ControllerBase
     /// </summary>
     private static RestaurantDto MapToDto(Restaurant restaurant)
     {
-        // KHÔNG CẦN ÉP KIỂU NỮA VÌ ĐÃ THỐNG NHẤT SANG DOUBLE
         return new RestaurantDto(
             Id: restaurant.Id,
             PartnerId: restaurant.PartnerId,
@@ -316,9 +316,15 @@ public class RestaurantsController : ControllerBase
             Rating: restaurant.Rating,
             Status: restaurant.Status,
             CreatedAt: restaurant.CreatedAt,
-            Images: new List<RestaurantImageDto>(),
-            Reviews: new List<ReviewDto>(),
-            FavoriteCount: 0
+            // SỬA LẠI ĐỂ MAP DANH SÁCH ẢNH THỰC TẾ
+            Images: restaurant.Images?.Select(img => new RestaurantImageDto(
+                Id: img.Id,
+                RestaurantId: restaurant.Id,
+                ImageUrl: img.ImageUrl,
+                CreatedAt: img.CreatedAt
+            )).ToList() ?? new List<RestaurantImageDto>(),
+            Reviews: new List<ReviewDto>(), // Giữ nguyên, sẽ làm sau
+            FavoriteCount: 0 // Giữ nguyên, sẽ làm sau
         );
     }
 }

@@ -292,22 +292,32 @@ public class PartnerRestaurantsController : ControllerBase
         }
     }
 
-    private static RestaurantDto MapToDto(Restaurant r) {
+    /// <summary>
+    /// Map Restaurant entity to DTO
+    /// </summary>
+    private static RestaurantDto MapToDto(Restaurant restaurant)
+    {
         return new RestaurantDto(
-            r.Id,
-            r.PartnerId,
-            r.Name,
-            r.Address,
-            r.Longitude,
-            r.Latitude,
-            r.Description,
-            r.AvgPrice,
-            r.Rating,
-            r.Status,
-            r.CreatedAt,
-            new List<RestaurantImageDto>(),
-            new List<ReviewDto>(),
-            0
+            Id: restaurant.Id,
+            PartnerId: restaurant.PartnerId,
+            Name: restaurant.Name,
+            Address: restaurant.Address,
+            Longitude: restaurant.Longitude,
+            Latitude: restaurant.Latitude,
+            Description: restaurant.Description,
+            AvgPrice: restaurant.AvgPrice,
+            Rating: restaurant.Rating,
+            Status: restaurant.Status,
+            CreatedAt: restaurant.CreatedAt,
+            // SỬA LẠI ĐỂ MAP DANH SÁCH ẢNH THỰC TẾ
+            Images: restaurant.Images?.Select(img => new RestaurantImageDto(
+                Id: img.Id,
+                RestaurantId: restaurant.Id,
+                ImageUrl: img.ImageUrl,
+                CreatedAt: img.CreatedAt
+            )).ToList() ?? new List<RestaurantImageDto>(),
+            Reviews: new List<ReviewDto>(), // Giữ nguyên, sẽ làm sau
+            FavoriteCount: 0 // Giữ nguyên, sẽ làm sau
         );
     }
 }
