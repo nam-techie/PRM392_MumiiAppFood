@@ -1,72 +1,36 @@
+using MongoDB.Bson.Serialization.Attributes;
+
 namespace Mumii.Discovery.Domain.Entities;
 
-/// <summary>
-/// Entity hình ảnh nhà hàng
-/// </summary>
 public class RestaurantImage
 {
-    public int Id { get; private set; }
-    public int RestaurantId { get; private set; }
+    [BsonId] // Mỗi ảnh sẽ có ID riêng trong mảng
+    [BsonRepresentation(MongoDB.Bson.BsonType.ObjectId)]
+    public string Id { get; private set; } = string.Empty;
+
+    [BsonElement("url")]
     public string ImageUrl { get; private set; } = string.Empty;
+    
+    [BsonElement("public_id")]
+    public string PublicId { get; private set; } = string.Empty; // Để xóa trên Cloudinary
+
+    [BsonElement("created_at")]
     public DateTime CreatedAt { get; private set; } = DateTime.UtcNow;
 
-    // Navigation properties
-    public Restaurant Restaurant { get; private set; } = null!;
-
-    /// <summary>
-    /// Constructor cho Entity Framework
-    /// </summary>
     private RestaurantImage() { }
 
-    /// <summary>
-    /// Tạo restaurant image mới
-    /// </summary>
-    public static RestaurantImage Create(int restaurantId, string imageUrl)
+    public static RestaurantImage Create(string imageUrl, string publicId)
     {
-        // Validate input
         if (string.IsNullOrWhiteSpace(imageUrl))
-            throw new ArgumentException("URL hình ảnh không được để trống", nameof(imageUrl));
-
-        // Validate URL format
-        if (!IsValidUrl(imageUrl))
-            throw new ArgumentException("URL hình ảnh không đúng định dạng", nameof(imageUrl));
+            throw new ArgumentException("URL hình ảnh không được để trống.", nameof(imageUrl));
+        if (string.IsNullOrWhiteSpace(publicId))
+            throw new ArgumentException("Public ID không được để trống.", nameof(publicId));
 
         return new RestaurantImage
         {
-            RestaurantId = restaurantId,
-            ImageUrl = imageUrl.Trim(),
-            CreatedAt = DateTime.UtcNow
+            Id = MongoDB.Bson.ObjectId.GenerateNewId().ToString(),
+            ImageUrl = imageUrl,
+            PublicId = publicId
         };
-    }
-
-    /// <summary>
-    /// Cập nhật URL hình ảnh
-    /// </summary>
-    public void UpdateImageUrl(string imageUrl)
-    {
-        if (string.IsNullOrWhiteSpace(imageUrl))
-            throw new ArgumentException("URL hình ảnh không được để trống", nameof(imageUrl));
-
-        // Validate URL format
-        if (!IsValidUrl(imageUrl))
-            throw new ArgumentException("URL hình ảnh không đúng định dạng", nameof(imageUrl));
-
-        ImageUrl = imageUrl.Trim();
-    }
-
-    /// <summary>
-    /// Validate URL format
-    /// </summary>
-    private static bool IsValidUrl(string url)
-    {
-        try
-        {
-            var uri = new Uri(url);
-            return uri.IsAbsoluteUri && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps);
-        }
-        catch
-        {
-            return false;
-        }
     }
 }

@@ -9,6 +9,8 @@ using Mumii.Auth.Domain.Interfaces;
 using Mumii.Auth.Infrastructure.Services;
 using Microsoft.OpenApi.Models; // <-- Added this using statement
 using System.IdentityModel.Tokens.Jwt;
+using Mumii.Auth.Infrastructure.Settings; // Cho CloudinarySettings
+
 
 // Load .env file
 Env.Load();
@@ -27,6 +29,12 @@ builder.Services.AddControllers();
 
 // Swagger/OpenAPI
 builder.Services.AddEndpointsApiExplorer();
+
+// Cấu hình CloudinarySettings
+builder.Services.Configure<CloudinarySettings>(builder.Configuration.GetSection("CloudinarySettings"));
+
+// Đăng ký PhotoService
+builder.Services.AddScoped<IPhotoService, PhotoService>();
 
 // Swagger/OpenAPI
 builder.Services.AddEndpointsApiExplorer();

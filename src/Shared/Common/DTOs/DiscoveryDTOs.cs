@@ -24,7 +24,7 @@ public record RestaurantDto(
 /// DTO cho hình ảnh nhà hàng
 /// </summary>
 public record RestaurantImageDto(
-    int Id,
+    string Id, // Sửa thành string
     int RestaurantId,
     string ImageUrl,
     DateTime CreatedAt

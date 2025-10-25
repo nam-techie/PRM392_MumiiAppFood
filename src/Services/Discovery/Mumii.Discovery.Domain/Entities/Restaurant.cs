@@ -1,4 +1,7 @@
 using Mumii.Shared.Common.Constants;
+using MongoDB.Bson.Serialization.Attributes;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Mumii.Discovery.Domain.Entities;
 
@@ -19,6 +22,9 @@ public class Restaurant
     public string Status { get; private set; } = RestaurantStatus.Pending;
     public DateTime CreatedAt { get; private set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; private set; } = DateTime.UtcNow;
+
+    [BsonElement("images")]
+    public List<RestaurantImage> Images { get; private set; } = new();
 
     private Restaurant() { }
 
@@ -130,6 +136,29 @@ public class Restaurant
             throw new InvalidOperationException("Chỉ có thể từ chối nhà hàng đang ở trạng thái chờ.");
         
         Status = RestaurantStatus.Declined;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void AddImage(string imageUrl, string publicId)
+    {
+        if (Images.Any(img => img.PublicId == publicId))
+        {
+            // Tránh thêm ảnh trùng lặp
+            return;
+        }
+        var newImage = RestaurantImage.Create(imageUrl, publicId);
+        Images.Add(newImage);
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void RemoveImage(string imageId)
+    {
+        var imageToRemove = Images.FirstOrDefault(img => img.Id == imageId);
+        if (imageToRemove == null)
+        {
+            throw new KeyNotFoundException("Không tìm thấy hình ảnh để xóa.");
+        }
+        Images.Remove(imageToRemove);
         UpdatedAt = DateTime.UtcNow;
     }
 }
