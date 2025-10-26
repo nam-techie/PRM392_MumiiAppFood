@@ -7,7 +7,8 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
         "MongoDB__ConnectionString": "mongodb+srv://mumii_social:mumii_social@mumii-social.jd8nd6f.mongodb.net/?retryWrites=true&w=majority&appName=mumii-social",
-        "MongoDB__DatabaseName": "mumii_social"
+        "MongoDB__DatabaseName": "mumii_social",
+        "SWAGGER_ENABLED": "true"
       },
       "applicationUrl": "http://localhost:8083;https://localhost:8443"
     }

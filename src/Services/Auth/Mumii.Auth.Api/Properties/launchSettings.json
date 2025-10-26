@@ -11,7 +11,8 @@
         "JWT_SECRET_KEY": "<REPLACE_WITH_MIN_32_CHAR_SECRET>",
         "Jwt__Issuer": "Mumii",
         "Jwt__Audience": "Mumii.Client",
-        "Jwt__ExpiryHours": "24"
+        "Jwt__ExpiryHours": "24",
+        "SWAGGER_ENABLED": "true"
       },
       "applicationUrl": "http://localhost:8081;https://localhost:8441"
     }
