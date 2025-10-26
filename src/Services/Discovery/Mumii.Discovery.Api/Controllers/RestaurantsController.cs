@@ -1,9 +1,15 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Mumii.Discovery.Domain.Entities;
 using Mumii.Discovery.Domain.Interfaces;
 using Mumii.Shared.Common.Constants;
 using Mumii.Shared.Common.DTOs;
 using Mumii.Shared.Common.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Mumii.Discovery.Api.Controllers;
 
@@ -40,7 +46,7 @@ public class RestaurantsController : ControllerBase
             if (pageSize < 1 || pageSize > 100) pageSize = 20;
 
             var result = await _restaurantRepository.GetPagedAsync(page, pageSize, cancellationToken);
-            
+
             var restaurantDtos = result.Items.Select(MapToDto).ToList();
             var pagedResult = new PagedResult<RestaurantDto>(
                 restaurantDtos,
@@ -56,15 +62,14 @@ public class RestaurantsController : ControllerBase
         {
             _logger.LogError(ex, "Error getting restaurants");
             return StatusCode(500, ApiResponse<PagedResult<RestaurantDto>>.ErrorResult(
-                "Lỗi hệ thống",
-                "Đã xảy ra lỗi khi lấy danh sách nhà hàng"));
+                "Lỗi hệ thống", "Đã xảy ra lỗi khi lấy danh sách nhà hàng"));
         }
     }
 
     /// <summary>
     /// Lấy thông tin nhà hàng theo ID
     /// </summary>
-    [HttpGet("{id}")]
+    [HttpGet("{id:int}")]
     public async Task<ActionResult<ApiResponse<RestaurantDto>>> GetRestaurant(
         int id,
         CancellationToken cancellationToken)
@@ -75,8 +80,7 @@ public class RestaurantsController : ControllerBase
             if (restaurant == null)
             {
                 return NotFound(ApiResponse<RestaurantDto>.ErrorResult(
-                    "Không tìm thấy",
-                    "Nhà hàng không tồn tại"));
+                    "Không tìm thấy", "Nhà hàng không tồn tại"));
             }
 
             var restaurantDto = MapToDto(restaurant);
@@ -86,8 +90,7 @@ public class RestaurantsController : ControllerBase
         {
             _logger.LogError(ex, "Error getting restaurant {RestaurantId}", id);
             return StatusCode(500, ApiResponse<RestaurantDto>.ErrorResult(
-                "Lỗi hệ thống",
-                "Đã xảy ra lỗi khi lấy thông tin nhà hàng"));
+                "Lỗi hệ thống", "Đã xảy ra lỗi khi lấy thông tin nhà hàng"));
         }
     }
 
@@ -97,18 +100,20 @@ public class RestaurantsController : ControllerBase
     [HttpGet("search")]
     public async Task<ActionResult<ApiResponse<PagedResult<RestaurantDto>>>> SearchRestaurants(
         [FromQuery] string? q,
-        [FromQuery] decimal? lat,
-        [FromQuery] decimal? lng,
-        [FromQuery] decimal? radiusKm,
-        [FromQuery] decimal? minPrice,
-        [FromQuery] decimal? maxPrice,
-        [FromQuery] decimal? minRating,
+        // SỬA CÁC THAM SỐ NÀY SANG DOUBLE VÀ FLOAT
+        [FromQuery] double? lat,
+        [FromQuery] double? lng,
+        [FromQuery] double? radiusKm,
+        [FromQuery] double? minPrice,
+        [FromQuery] double? maxPrice,
+        [FromQuery] float? minRating,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
         try
         {
+            // TẠO QUERY DTO VỚI KIỂU DỮ LIỆU ĐÚNG
             var query = new SearchRestaurantsQuery(
                 Query: q,
                 Latitude: lat,
@@ -122,7 +127,7 @@ public class RestaurantsController : ControllerBase
             );
 
             var result = await _restaurantRepository.SearchAsync(query, cancellationToken);
-            
+
             var restaurantDtos = result.Items.Select(MapToDto).ToList();
             var pagedResult = new PagedResult<RestaurantDto>(
                 restaurantDtos,
@@ -138,8 +143,7 @@ public class RestaurantsController : ControllerBase
         {
             _logger.LogError(ex, "Error searching restaurants");
             return StatusCode(500, ApiResponse<PagedResult<RestaurantDto>>.ErrorResult(
-                "Lỗi hệ thống",
-                "Đã xảy ra lỗi khi tìm kiếm nhà hàng"));
+                "Lỗi hệ thống", "Đã xảy ra lỗi khi tìm kiếm nhà hàng"));
         }
     }
 
@@ -148,9 +152,10 @@ public class RestaurantsController : ControllerBase
     /// </summary>
     [HttpGet("nearby")]
     public async Task<ActionResult<ApiResponse<List<RestaurantDto>>>> GetNearbyRestaurants(
-        [FromQuery] decimal lat,
-        [FromQuery] decimal lng,
-        [FromQuery] decimal radiusKm = 5.0m,
+        // SỬA CÁC THAM SỐ NÀY SANG DOUBLE
+        [FromQuery] double lat,
+        [FromQuery] double lng,
+        [FromQuery] double radiusKm = 5.0,
         [FromQuery] int limit = 50,
         CancellationToken cancellationToken = default)
     {
@@ -172,63 +177,61 @@ public class RestaurantsController : ControllerBase
         {
             _logger.LogError(ex, "Error getting nearby restaurants");
             return StatusCode(500, ApiResponse<List<RestaurantDto>>.ErrorResult(
-                "Lỗi hệ thống",
-                "Đã xảy ra lỗi khi tìm nhà hàng gần đây"));
+                "Lỗi hệ thống", "Đã xảy ra lỗi khi tìm nhà hàng gần đây"));
         }
     }
 
-    /// <summary>
-    /// Tạo nhà hàng mới (Admin only)
-    /// </summary>
+    // ... (các phương thức của Admin giữ nguyên) ...
+
     [HttpPost]
-    public async Task<ActionResult<ApiResponse<RestaurantDto>>> CreateRestaurant(
-        [FromBody] CreateRestaurantRequest request,
-        CancellationToken cancellationToken)
+    [Authorize(Roles = "Admin")]
+    public IActionResult CreateRestaurantByAdmin()
     {
+        return Forbid("Admin should approve restaurants created by partners.");
+    }
+
+    [HttpPost("{id}/approve")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult<ApiResponse>> ApproveRestaurant(int id, CancellationToken cancellationToken)
+    {
+        var restaurant = await _restaurantRepository.GetByIdAsync(id, cancellationToken);
+        if (restaurant == null) return NotFound(ApiResponse.ErrorResult("Không tìm thấy nhà hàng"));
+
         try
         {
-            var restaurant = Restaurant.Create(
-                id: 0, // will be generated in repository
-                partnerId: 0, // set actual partner later if needed
-                name: request.Name,
-                address: request.Address,
-                latitude: request.Latitude,
-                longitude: request.Longitude,
-                description: request.Description,
-                avgPrice: request.AvgPrice,
-                rating: 0,
-                status: "Active"
-            );
-
-            await _restaurantRepository.AddAsync(restaurant, cancellationToken);
-            await _restaurantRepository.SaveChangesAsync(cancellationToken);
-
-            var restaurantDto = MapToDto(restaurant);
-            
-            _logger.LogInformation("Restaurant created: {RestaurantId}", restaurant.Id);
-            return CreatedAtAction(
-                nameof(GetRestaurant), 
-                new { id = restaurant.Id }, 
-                ApiResponse<RestaurantDto>.SuccessResult(restaurantDto, "Tạo nhà hàng thành công"));
+            restaurant.Approve();
+            await _restaurantRepository.UpdateAsync(restaurant, cancellationToken);
+            _logger.LogInformation("Admin approved restaurant {RestaurantId}", id);
+            return Ok(ApiResponse.SuccessResult("Duyệt nhà hàng thành công."));
         }
-        catch (ArgumentException ex)
+        catch (InvalidOperationException ex)
         {
-            _logger.LogWarning("Restaurant creation validation failed: {Message}", ex.Message);
-            return BadRequest(ApiResponse<RestaurantDto>.ErrorResult("Dữ liệu không hợp lệ", ex.Message));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error creating restaurant");
-            return StatusCode(500, ApiResponse<RestaurantDto>.ErrorResult(
-                "Lỗi hệ thống",
-                "Đã xảy ra lỗi trong quá trình tạo nhà hàng"));
+            return BadRequest(ApiResponse.ErrorResult(ex.Message));
         }
     }
 
-    /// <summary>
-    /// Cập nhật nhà hàng (Admin only)
-    /// </summary>
+    [HttpPost("{id}/decline")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult<ApiResponse>> DeclineRestaurant(int id, CancellationToken cancellationToken)
+    {
+        var restaurant = await _restaurantRepository.GetByIdAsync(id, cancellationToken);
+        if (restaurant == null) return NotFound(ApiResponse.ErrorResult("Không tìm thấy nhà hàng"));
+
+        try
+        {
+            restaurant.Decline();
+            await _restaurantRepository.UpdateAsync(restaurant, cancellationToken);
+            _logger.LogInformation("Admin declined restaurant {RestaurantId}", id);
+            return Ok(ApiResponse.SuccessResult("Từ chối nhà hàng thành công."));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse.ErrorResult(ex.Message));
+        }
+    }
+
     [HttpPut("{id}")]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<ApiResponse<RestaurantDto>>> UpdateRestaurant(
         int id,
         [FromBody] UpdateRestaurantRequest request,
@@ -239,27 +242,24 @@ public class RestaurantsController : ControllerBase
             var restaurant = await _restaurantRepository.GetByIdAsync(id, cancellationToken);
             if (restaurant == null)
             {
-                return NotFound(ApiResponse<RestaurantDto>.ErrorResult(
-                    "Không tìm thấy",
-                    "Nhà hàng không tồn tại"));
+                return NotFound(ApiResponse<RestaurantDto>.ErrorResult("Không tìm thấy", "Nhà hàng không tồn tại"));
             }
 
-            restaurant.Update(
+            restaurant.UpdateByAdmin(
                 name: request.Name,
                 address: request.Address,
                 latitude: request.Latitude,
                 longitude: request.Longitude,
                 description: request.Description,
                 avgPrice: request.AvgPrice,
-                rating: null,
+                rating: request.Rating,
                 status: request.Status
             );
 
             await _restaurantRepository.UpdateAsync(restaurant, cancellationToken);
-            await _restaurantRepository.SaveChangesAsync(cancellationToken);
 
             var restaurantDto = MapToDto(restaurant);
-            
+
             _logger.LogInformation("Restaurant updated: {RestaurantId}", restaurant.Id);
             return Ok(ApiResponse<RestaurantDto>.SuccessResult(restaurantDto, "Cập nhật nhà hàng thành công"));
         }
@@ -270,16 +270,12 @@ public class RestaurantsController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating restaurant {RestaurantId}", id);
-            return StatusCode(500, ApiResponse<RestaurantDto>.ErrorResult(
-                "Lỗi hệ thống",
-                "Đã xảy ra lỗi khi cập nhật nhà hàng"));
+            return StatusCode(500, ApiResponse<RestaurantDto>.ErrorResult("Lỗi hệ thống", "Đã xảy ra lỗi khi cập nhật nhà hàng"));
         }
     }
 
-    /// <summary>
-    /// Xóa nhà hàng (Admin only)
-    /// </summary>
     [HttpDelete("{id}")]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<ApiResponse>> DeleteRestaurant(
         int id,
         CancellationToken cancellationToken)
@@ -289,23 +285,16 @@ public class RestaurantsController : ControllerBase
             var exists = await _restaurantRepository.ExistsAsync(id, cancellationToken);
             if (!exists)
             {
-                return NotFound(ApiResponse.ErrorResult(
-                    "Không tìm thấy",
-                    "Nhà hàng không tồn tại"));
+                return NotFound(ApiResponse.ErrorResult("Không tìm thấy", "Nhà hàng không tồn tại"));
             }
 
             await _restaurantRepository.DeleteAsync(id, cancellationToken);
-            await _restaurantRepository.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Restaurant deleted: {RestaurantId}", id);
             return Ok(ApiResponse.SuccessResult("Xóa nhà hàng thành công"));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error deleting restaurant {RestaurantId}", id);
-            return StatusCode(500, ApiResponse.ErrorResult(
-                "Lỗi hệ thống",
-                "Đã xảy ra lỗi khi xóa nhà hàng"));
+            return StatusCode(500, ApiResponse.ErrorResult("Lỗi hệ thống", "Đã xảy ra lỗi khi xóa nhà hàng"));
         }
     }
 
@@ -314,6 +303,7 @@ public class RestaurantsController : ControllerBase
     /// </summary>
     private static RestaurantDto MapToDto(Restaurant restaurant)
     {
+        // KHÔNG CẦN ÉP KIỂU NỮA VÌ ĐÃ THỐNG NHẤT SANG DOUBLE
         return new RestaurantDto(
             Id: restaurant.Id,
             PartnerId: restaurant.PartnerId,

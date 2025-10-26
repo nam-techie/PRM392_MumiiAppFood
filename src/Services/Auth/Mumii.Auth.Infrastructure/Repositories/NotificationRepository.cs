@@ -1,12 +1,13 @@
 using MongoDB.Driver;
 using Mumii.Auth.Domain.Entities;
 using Mumii.Auth.Domain.Interfaces;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Mumii.Auth.Infrastructure.Repositories;
 
-/// <summary>
-/// Implementation của INotificationRepository với MongoDB
-/// </summary>
 public class NotificationRepository : INotificationRepository
 {
     private readonly IMongoCollection<Notification> _notifications;
@@ -18,27 +19,15 @@ public class NotificationRepository : INotificationRepository
 
     public async Task<Notification?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
     {
-        var filter = Builders<Notification>.Filter.Eq(n => n.Id, id);
-        return await _notifications.Find(filter).FirstOrDefaultAsync(cancellationToken);
+        return await _notifications.Find(n => n.Id == id).FirstOrDefaultAsync(cancellationToken);
     }
 
-    public async Task<List<Notification>> GetByUserIdAsync(int userId, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<Notification>> GetByUserIdAsync(int userId, CancellationToken cancellationToken = default)
     {
-        var filter = Builders<Notification>.Filter.Eq(n => n.UserId, userId);
-        return await _notifications.Find(filter)
-            .SortByDescending(n => n.CreatedAt)
-            .ToListAsync(cancellationToken);
-    }
-
-    public async Task<List<Notification>> GetUnreadByUserIdAsync(int userId, CancellationToken cancellationToken = default)
-    {
-        var filter = Builders<Notification>.Filter.And(
-            Builders<Notification>.Filter.Eq(n => n.UserId, userId),
-            Builders<Notification>.Filter.Eq(n => n.IsRead, false)
-        );
-        return await _notifications.Find(filter)
-            .SortByDescending(n => n.CreatedAt)
-            .ToListAsync(cancellationToken);
+        // Sắp xếp để thông báo mới nhất lên đầu
+        return await _notifications.Find(n => n.UserId == userId)
+                                   .SortByDescending(n => n.CreatedAt)
+                                   .ToListAsync(cancellationToken);
     }
 
     public async Task<Notification> AddAsync(Notification notification, CancellationToken cancellationToken = default)
@@ -47,17 +36,28 @@ public class NotificationRepository : INotificationRepository
         return notification;
     }
 
-    public async Task<Notification> UpdateAsync(Notification notification, CancellationToken cancellationToken = default)
+    public async Task UpdateAsync(Notification notification, CancellationToken cancellationToken = default)
     {
-        var filter = Builders<Notification>.Filter.Eq(n => n.Id, notification.Id);
-        await _notifications.ReplaceOneAsync(filter, notification, cancellationToken: cancellationToken);
-        return notification;
+        await _notifications.ReplaceOneAsync(n => n.Id == notification.Id, notification, cancellationToken: cancellationToken);
     }
 
+    public async Task UpdateManyAsync(IEnumerable<Notification> notifications, CancellationToken cancellationToken = default)
+    {
+        var updates = new List<WriteModel<Notification>>();
+        foreach (var notification in notifications)
+        {
+            var filter = Builders<Notification>.Filter.Eq(n => n.Id, notification.Id);
+            var update = new ReplaceOneModel<Notification>(filter, notification);
+            updates.Add(update);
+        }
+        if (updates.Any())
+        {
+            await _notifications.BulkWriteAsync(updates, cancellationToken: cancellationToken);
+        }
+    }
+    
     public async Task DeleteAsync(int id, CancellationToken cancellationToken = default)
     {
-        var filter = Builders<Notification>.Filter.Eq(n => n.Id, id);
-        await _notifications.DeleteOneAsync(filter, cancellationToken);
+        await _notifications.DeleteOneAsync(n => n.Id == id, cancellationToken);
     }
 }
-

@@ -186,6 +186,39 @@ public class JwtService : IJwtService
     }
 
     /// <summary>
+    /// Lấy ClaimsPrincipal từ một token đã hết hạn (dùng cho refresh token).
+    /// </summary>
+    public ClaimsPrincipal? GetClaimsPrincipalFromExpiredToken(string token)
+    {
+        var tokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateAudience = false, // Không cần validate audience khi refresh
+            ValidateIssuer = false, // Không cần validate issuer khi refresh
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = _key,
+            ValidateLifetime = false // Quan trọng: không validate thời gian sống của token
+        };
+
+        var tokenHandler = new JwtSecurityTokenHandler();
+        try
+        {
+            var principal = tokenHandler.ValidateToken(token, tokenValidationParameters, out SecurityToken securityToken);
+            if (securityToken is not JwtSecurityToken jwtSecurityToken ||
+                !jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
+            {
+                return null; // Token không hợp lệ
+            }
+
+            return principal;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+
+    /// <summary>
     /// Get access token expiry time
     /// </summary>
     private TimeSpan GetAccessTokenExpiry()

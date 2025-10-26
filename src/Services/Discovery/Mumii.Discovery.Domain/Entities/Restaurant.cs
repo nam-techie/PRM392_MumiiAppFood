@@ -1,3 +1,5 @@
+using Mumii.Shared.Common.Constants;
+
 namespace Mumii.Discovery.Domain.Entities;
 
 /// <summary>
@@ -14,7 +16,7 @@ public class Restaurant
     public string? Description { get; private set; }
     public double? AvgPrice { get; private set; }
     public float Rating { get; private set; }
-    public string Status { get; private set; } = "Active";
+    public string Status { get; private set; } = RestaurantStatus.Pending;
     public DateTime CreatedAt { get; private set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; private set; } = DateTime.UtcNow;
 
@@ -29,13 +31,16 @@ public class Restaurant
         double? longitude = null,
         string? description = null,
         double? avgPrice = null,
-        float rating = 0,
-        string status = "Active")
+        float rating = 0)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("Tên nhà hàng không được để trống", nameof(name));
         if (string.IsNullOrWhiteSpace(address))
             throw new ArgumentException("Địa chỉ không được để trống", nameof(address));
+        
+        // PartnerId là bắt buộc khi tạo
+        if (partnerId <= 0)
+            throw new ArgumentException("Cần có thông tin Partner ID hợp lệ.", nameof(partnerId));
 
         return new Restaurant
         {
@@ -48,13 +53,41 @@ public class Restaurant
             Description = description?.Trim(),
             AvgPrice = avgPrice,
             Rating = rating,
-            Status = status,
+            Status = RestaurantStatus.Pending, // <-- MẶC ĐỊNH LÀ PENDING
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
     }
+    
+    // Phương thức Update cho Partner (chỉ được sửa khi đang Pending hoặc Approved)
+    public void UpdateByPartner(
+        string name,
+        string address,
+        string? description = null,
+        double? avgPrice = null)
+    {
+        if (Status == RestaurantStatus.Declined)
+            throw new InvalidOperationException("Không thể cập nhật nhà hàng đã bị từ chối.");
+        
+         if (string.IsNullOrWhiteSpace(name))
+            throw new ArgumentException("Tên nhà hàng không được để trống", nameof(name));
+        if (string.IsNullOrWhiteSpace(address))
+            throw new ArgumentException("Địa chỉ không được để trống", nameof(address));
+        
+        Name = name.Trim();
+        Address = address.Trim();
+        Description = description?.Trim();
+        AvgPrice = avgPrice;
+        // Nếu Partner sửa thông tin, có thể cần Admin duyệt lại
+        // Status = RestaurantStatus.Pending; 
+        UpdatedAt = DateTime.UtcNow;
+    }
 
-    public void Update(
+    /// <summary>
+    /// Cập nhật thông tin nhà hàng bởi Admin.
+    /// Admin có thể cập nhật cả Rating và Status.
+    /// </summary>
+    public void UpdateByAdmin(
         string name,
         string address,
         double? latitude = null,
@@ -77,6 +110,26 @@ public class Restaurant
         AvgPrice = avgPrice;
         if (rating.HasValue) Rating = rating.Value;
         if (!string.IsNullOrWhiteSpace(status)) Status = status!;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    // Phương thức cho Admin duyệt
+    public void Approve()
+    {
+        if (Status != RestaurantStatus.Pending)
+            throw new InvalidOperationException("Chỉ có thể duyệt nhà hàng đang ở trạng thái chờ.");
+        
+        Status = RestaurantStatus.Approved;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    // Phương thức cho Admin từ chối
+    public void Decline()
+    {
+        if (Status != RestaurantStatus.Pending)
+            throw new InvalidOperationException("Chỉ có thể từ chối nhà hàng đang ở trạng thái chờ.");
+        
+        Status = RestaurantStatus.Declined;
         UpdatedAt = DateTime.UtcNow;
     }
 }

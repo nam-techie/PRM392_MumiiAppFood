@@ -46,9 +46,10 @@ public static class DependencyInjection
 
         // Services
         services.AddScoped<IJwtService, JwtService>();
-        services.AddScoped<IEmailService, EmailService>();
-        services.AddScoped<IGoogleAuthService, GoogleAuthService>();
-        services.AddScoped<ICloudinaryService, CloudinaryService>();
+        services.AddScoped<ITokenCacheService, TokenCacheService>();
+        
+        // Memory Cache for token storage
+        services.AddMemoryCache();
 
         return services;
     }

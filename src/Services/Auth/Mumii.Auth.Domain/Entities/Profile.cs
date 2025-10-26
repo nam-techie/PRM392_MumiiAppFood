@@ -78,10 +78,9 @@ public class Profile
     }
 
     /// <summary>
-    /// Cập nhật profile
+    /// Cập nhật thông tin profile (không bao gồm avatar)
     /// </summary>
-    public void Update(string? gender = null, string? avatar = null, 
-        string? phoneNumber = null, string? address = null)
+    public void Update(string? gender = null, string? phoneNumber = null, string? address = null)
     {
         // Validate phone number format if provided
         if (!string.IsNullOrWhiteSpace(phoneNumber) && !IsValidPhoneNumber(phoneNumber))
@@ -96,7 +95,6 @@ public class Profile
         }
 
         Gender = gender?.Trim();
-        Avatar = avatar?.Trim();
         PhoneNumber = phoneNumber?.Trim();
         Address = address?.Trim();
         UpdatedAt = DateTime.UtcNow;
@@ -120,20 +118,22 @@ public class Profile
     private static bool IsValidPhoneNumber(string phoneNumber)
     {
         if (string.IsNullOrWhiteSpace(phoneNumber))
-            return false;
+        {
+            // Nếu không bắt buộc phải có SĐT, ta coi chuỗi rỗng là hợp lệ.
+            return true; 
+        }
 
-        // Remove spaces and special characters
-        var cleanPhone = phoneNumber.Replace(" ", "").Replace("-", "").Replace("(", "").Replace(")", "");
+        // Chỉ giữ lại các ký tự số
+        var cleanPhone = new string(phoneNumber.Where(char.IsDigit).ToArray());
         
-        // Vietnamese phone number patterns
-        // Mobile: 09x, 08x, 07x, 05x, 03x (10 digits)
-        // Landline: 0xx (10-11 digits)
-        if (cleanPhone.Length < 10 || cleanPhone.Length > 11)
-            return false;
+        // Kiểm tra xem có phải là số điện thoại Việt Nam không
+        // Bắt đầu bằng 0 và có 10 chữ số
+        if (cleanPhone.StartsWith("0") && cleanPhone.Length == 10)
+        {
+            return true;
+        }
 
-        if (!cleanPhone.StartsWith("0"))
-            return false;
-
-        return cleanPhone.All(char.IsDigit);
+        // Nếu không khớp, trả về false
+        return false;
     }
 }

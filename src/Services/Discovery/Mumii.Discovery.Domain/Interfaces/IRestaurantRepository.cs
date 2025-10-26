@@ -56,6 +56,11 @@ public interface IRestaurantRepository
     Task<bool> ExistsAsync(int id, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Lấy danh sách nhà hàng theo Partner ID
+    /// </summary>
+    Task<List<Restaurant>> GetByPartnerIdAsync(int partnerId, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Lưu thay đổi
     /// </summary>
     Task SaveChangesAsync(CancellationToken cancellationToken = default);

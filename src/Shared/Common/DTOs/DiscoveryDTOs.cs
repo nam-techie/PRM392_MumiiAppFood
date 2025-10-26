@@ -76,7 +76,8 @@ public record UpdateRestaurantRequest(
     double? Longitude,
     string? Description,
     double? AvgPrice,
-    string Status
+    float? Rating,
+    string? Status
 );
 
 /// <summary>
@@ -102,17 +103,15 @@ public record AddRestaurantImageRequest(
     string ImageUrl
 );
 
-/// <summary>
-/// DTO cho tìm kiếm nhà hàng
 /// </summary>
 public record SearchRestaurantsQuery(
     string? Query,
-    decimal? Latitude,
-    decimal? Longitude,
-    decimal? RadiusKm,
-    decimal? MinPrice,
-    decimal? MaxPrice,
-    decimal? MinRating,
+    double? Latitude,     // <<< Sửa thành double?
+    double? Longitude,    // <<< Sửa thành double?
+    double? RadiusKm,     // <<< Sửa thành double?
+    double? MinPrice,     // <<< Sửa thành double?
+    double? MaxPrice,     // <<< Sửa thành double?
+    float? MinRating,     // <<< Sửa thành float? để khớp với Rating
     int Page = 1,
     int PageSize = 20
 );
@@ -132,8 +131,8 @@ public record PagedResult<T>(
 /// DTO cho nhà hàng gần vị trí
 /// </summary>
 public record NearbyRestaurantsQuery(
-    decimal Latitude,
-    decimal Longitude,
-    decimal RadiusKm = 5.0m,
+    double Latitude,      // <<< Sửa thành double
+    double Longitude,     // <<< Sửa thành double
+    double RadiusKm = 5.0, // <<< Sửa thành double
     int Limit = 50
 );

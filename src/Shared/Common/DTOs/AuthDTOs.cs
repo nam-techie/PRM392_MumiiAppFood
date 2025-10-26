@@ -37,6 +37,7 @@ public record ForgotPasswordRequest(
 public record ResetPasswordRequest(
     string Email,
     string Token,
+    string Otp,
     string NewPassword
 );
 
@@ -53,6 +54,7 @@ public record LoginResponse(
 /// DTO cho refresh token
 /// </summary>
 public record RefreshTokenRequest(
+    string AccessToken,
     string RefreshToken
 );
 
@@ -86,8 +88,7 @@ public record ProfileDto(
     string? Gender,
     string? Avatar,
     string? PhoneNumber,
-    string? Address,
-    DateTime CreatedAt
+    string? Address
 );
 
 /// <summary>
@@ -106,7 +107,7 @@ public record NotificationDto(
 /// DTO cho cập nhật profile
 /// </summary>
 public record UpdateProfileRequest(
-    string? Fullname,
+    string? Fullname, 
     string? Gender,
     string? PhoneNumber,
     string? Address

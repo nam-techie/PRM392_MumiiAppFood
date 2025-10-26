@@ -5,6 +5,9 @@ using Microsoft.IdentityModel.Tokens;
 using Mumii.Auth.Infrastructure;
 using Serilog;
 using DotNetEnv;
+using Mumii.Auth.Domain.Interfaces;     
+using Mumii.Auth.Infrastructure.Services;
+using Mumii.Auth.Infrastructure.Settings;
 
 // Load .env file
 Env.Load();
@@ -21,6 +24,23 @@ builder.Host.UseSerilog((context, configuration) =>
 // Add services to the container
 builder.Services.AddControllers();
 
+// Đăng ký dịch vụ cache trong bộ nhớ (cần thiết cho TokenCacheService)
+builder.Services.AddMemoryCache();
+
+// Đăng ký ITokenCacheService với triển khai TokenCacheService
+builder.Services.AddScoped<ITokenCacheService, TokenCacheService>();
+
+// Cấu hình MailSettings từ appsettings.json
+builder.Services.Configure<MailSettings>(builder.Configuration.GetSection("MailSettings"));
+
+// Đăng ký Email Service
+builder.Services.AddScoped<IEmailService, SendGridEmailService>();
+
+// Cấu hình CloudinarySettings
+builder.Services.Configure<CloudinarySettings>(builder.Configuration.GetSection("CloudinarySettings"));
+// Đăng ký PhotoService
+builder.Services.AddScoped<IPhotoService, PhotoService>();
+
 // Swagger/OpenAPI
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
@@ -31,7 +51,7 @@ builder.Services.AddSwaggerGen(c =>
         Version = "v1",
         Description = "ASP.NET Core Web API with JWT Bearer Authentication"
     });
-    
+
     // JWT Bearer authorization trong Swagger - theo chuẩn OpenAPI
     c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
     {
@@ -44,7 +64,7 @@ builder.Services.AddSwaggerGen(c =>
         Scheme = "Bearer",
         BearerFormat = "JWT"
     });
-    
+
     c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement()
     {
         {
@@ -68,7 +88,7 @@ builder.Services.AddSwaggerGen(c =>
 builder.Services.AddInfrastructure(builder.Configuration);
 
 // JWT Authentication - chỉ từ environment variable
-var jwtKey = Environment.GetEnvironmentVariable("JWT_SECRET_KEY") ?? 
+var jwtKey = Environment.GetEnvironmentVariable("JWT_SECRET_KEY") ??
              builder.Configuration["Jwt:Key"];
 
 if (string.IsNullOrEmpty(jwtKey))
