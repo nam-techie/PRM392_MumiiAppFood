@@ -44,4 +44,18 @@ public class SendGridEmailService : IEmailService
 				toEmail, response.StatusCode, await response.Body.ReadAsStringAsync());
 		}
 	}
+
+	public async Task SendPasswordResetEmailAsync(string toEmail, string fullname, string resetToken)
+	{
+		var subject = "🍜 Mumii Food - Đặt lại mật khẩu";
+		var htmlContent = $@"
+			<h1>Yêu cầu đặt lại mật khẩu</h1>
+			<p>Xin chào {fullname},</p>
+			<p>Chúng tôi đã nhận được yêu cầu đặt lại mật khẩu cho tài khoản của bạn.</p>
+			<p>Mã OTP của bạn là: <strong>{resetToken}</strong></p>
+			<p>Mã này sẽ hết hạn sau 10 phút. Vui lòng không chia sẻ mã này với bất kỳ ai.</p>
+			<p>Trân trọng,<br>Đội ngũ Mumii App</p>";
+
+		await SendEmailAsync(toEmail, subject, htmlContent);
+	}
 }

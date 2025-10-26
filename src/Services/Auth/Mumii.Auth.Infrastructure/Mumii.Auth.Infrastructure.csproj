@@ -28,7 +28,6 @@
     <PackageReference Include="Google.Apis.Auth" />
     <PackageReference Include="MailKit" />
     <PackageReference Include="MimeKit" />
-    <PackageReference Include="CloudinaryDotNet" />
   </ItemGroup>
 
 </Project>

@@ -67,6 +67,38 @@ public class EmailService : IEmailService
     }
 
     /// <summary>
+    /// Implement IEmailService interface - gửi email generic
+    /// </summary>
+    public async Task SendEmailAsync(string toEmail, string subject, string htmlContent)
+    {
+        try
+        {
+            var message = new MimeMessage();
+            message.From.Add(new MailboxAddress(_settings.SenderName, _settings.SenderEmail));
+            message.To.Add(new MailboxAddress("", toEmail));
+            message.Subject = subject;
+
+            message.Body = new TextPart("html")
+            {
+                Text = htmlContent
+            };
+
+            using var client = new SmtpClient();
+            await client.ConnectAsync(_settings.SmtpServer, _settings.SmtpPort, SecureSocketOptions.StartTls);
+            await client.AuthenticateAsync(_settings.SenderEmail, _settings.Password);
+            await client.SendAsync(message);
+            await client.DisconnectAsync(true);
+
+            _logger.LogInformation("Email sent successfully to: {Email}", toEmail);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error sending email to: {Email}", toEmail);
+            throw;
+        }
+    }
+
+    /// <summary>
     /// Generate Neo Brutalism HTML template
     /// </summary>
     private string GenerateNeoBrutalismTemplate(string fullname, string resetToken)
