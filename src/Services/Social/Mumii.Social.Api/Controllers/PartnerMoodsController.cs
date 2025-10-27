@@ -1,28 +1,32 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Mumii.Shared.Common.DTOs;
 using Mumii.Shared.Common.Models;
 using Mumii.Social.Domain.Interfaces;
+using Mumii.Auth.Domain.Interfaces;
 using Mumii.Auth.Infrastructure.Services;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Mumii.Auth.Domain.Interfaces;
+using System.Security.Claims;
+using System;
 
 namespace Mumii.Social.Api.Controllers;
 
 [ApiController]
-[Route("api/moods")]
-public class MoodsController : ControllerBase
+[Route("api/partner/moods")]
+[Authorize(Roles = "Partner")] // Chỉ Partner
+public class PartnerMoodsController : ControllerBase
 {
     private readonly IMoodRepository _moodRepository;
 
-    public MoodsController(IMoodRepository moodRepository)
+    public PartnerMoodsController(IMoodRepository moodRepository)
     {
         _moodRepository = moodRepository;
     }
 
     /// <summary>
-    /// Lấy danh sách tất cả các mood có sẵn
+    /// (Partner) Lấy danh sách tất cả các mood
     /// </summary>
     [HttpGet]
     public async Task<ActionResult<ApiResponse<IEnumerable<MoodDto>>>> GetAllMoods()
@@ -31,20 +35,14 @@ public class MoodsController : ControllerBase
         var dtos = moods.Select(m => new MoodDto(m.Id, m.Name, m.Description, m.CreatedAt));
         return Ok(ApiResponse<IEnumerable<MoodDto>>.SuccessResult(dtos));
     }
-
-    /// <summary>
-    /// Lấy thông tin chi tiết của một mood theo ID
-    /// </summary>
-    [HttpGet("{id:int}")] // <<< ENDPOINT MỚI
-    public async Task<ActionResult<ApiResponse<MoodDto>>> GetMoodById(int id)
+    
+    private int GetCurrentUserId()
     {
-        var mood = await _moodRepository.GetByIdAsync(id);
-        if (mood == null)
+        var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userIdStr))
         {
-            return NotFound(ApiResponse.ErrorResult("Không tìm thấy mood."));
+            throw new InvalidOperationException("User ID claim (NameIdentifier) not found in token.");
         }
-
-        var dto = new MoodDto(mood.Id, mood.Name, mood.Description, mood.CreatedAt);
-        return Ok(ApiResponse<MoodDto>.SuccessResult(dto));
+        return int.Parse(userIdStr);
     }
 }

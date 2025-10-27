@@ -64,10 +64,10 @@ app.UseSwaggerUI(c =>
 
     if (isDev)
     {
-        c.SwaggerEndpoint("http://localhost:8081/swagger/v1/swagger.json", "Auth API v1");
-        c.SwaggerEndpoint("http://localhost:8082/swagger/v1/swagger.json", "Discovery API v1");
-        c.SwaggerEndpoint("http://localhost:8083/swagger/v1/swagger.json", "Social API v1");
-        c.SwaggerEndpoint("http://localhost:8084/swagger/v1/swagger.json", "AI API v1");
+        c.SwaggerEndpoint("http://localhost:8081/index.html", "Auth API v1");
+        c.SwaggerEndpoint("http://localhost:8082/index.html", "Discovery API v1");
+        c.SwaggerEndpoint("http://localhost:8083/index.html", "Social API v1");
+        c.SwaggerEndpoint("http://localhost:8084/index.html", "AI API v1");
     }
     else
     {

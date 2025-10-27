@@ -8,6 +8,7 @@ using DotNetEnv;
 using Mumii.Auth.Domain.Interfaces;     
 using Mumii.Auth.Infrastructure.Services;
 using Mumii.Auth.Infrastructure.Settings;
+using Mumii.Auth.Infrastructure.Data;
 
 // Load .env file
 Env.Load();
@@ -215,6 +216,20 @@ app.MapGet("/", () => new {
     Status = "Running",
     Timestamp = DateTime.UtcNow
 });
+
+// ============= THÊM ĐOẠN CODE NÀY VÀO =============
+// Seed data khi ứng dụng khởi động
+try
+{
+    Log.Information("Seeding database...");
+    await DataSeeder.SeedAdminUsersAsync(app);
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "An error occurred while seeding the database.");
+    throw;
+}
+// ======================================================
 
 try
 {

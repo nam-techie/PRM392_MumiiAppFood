@@ -1,4 +1,8 @@
 using Mumii.Auth.Domain.Entities;
+using Mumii.Shared.Common.DTOs;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using System.Threading;
 
 namespace Mumii.Auth.Domain.Interfaces;
 
@@ -41,5 +45,9 @@ public interface IUserRepository
     /// Lấy tất cả users (với phân trang)
     /// </summary>
     Task<List<User>> GetAllAsync(int skip = 0, int limit = 100, CancellationToken cancellationToken = default);
-}
 
+    Task<PagedResult<User>> GetPagedAsync(int page, int pageSize, CancellationToken cancellationToken = default);
+
+    // >>> THÊM PHƯƠNG THỨC MỚI <<<
+    Task<IEnumerable<User>> GetByIdsAsync(IEnumerable<int> ids, CancellationToken cancellationToken = default);
+}

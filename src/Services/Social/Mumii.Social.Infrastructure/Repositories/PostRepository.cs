@@ -1,8 +1,14 @@
 using MongoDB.Driver;
 using Mumii.Social.Domain.Entities;
 using Mumii.Social.Domain.Interfaces;
-using Mumii.Shared.Common.DTOs;
+using Mumii.Shared.Common.Models;
 using MongoDB.Bson;
+using Mumii.Shared.Common.DTOs;
+using System.Threading.Tasks;
+using System.Threading;
+using System.Collections.Generic;
+using System;
+using System.Linq;
 
 namespace Mumii.Social.Infrastructure.Repositories;
 
@@ -18,25 +24,29 @@ public class PostRepository : IPostRepository
         _posts = database.GetCollection<Post>("posts");
     }
 
-    /// <summary>
-    /// Tìm bài đăng theo ID
-    /// </summary>
-    public async Task<Post?> GetByIdAsync(string id, CancellationToken cancellationToken = default)
+    public async Task<Post?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
     {
-        if (int.TryParse(id, out var pid))
-            return await _posts.Find(p => p.Id == pid).FirstOrDefaultAsync(cancellationToken);
-        return null;
+        return await _posts.Find(p => p.Id == id).FirstOrDefaultAsync(cancellationToken);
     }
 
-    /// <summary>
-    /// Lấy danh sách bài đăng có phân trang
-    /// </summary>
     public async Task<PagedResult<Post>> GetPagedAsync(
         int page, 
-        int pageSize, 
+        int pageSize,
+        int? partnerId = null,
+        string? status = null, 
+        int? restaurantId = null, 
         CancellationToken cancellationToken = default)
     {
-        var find = _posts.Find(_ => true);
+        var filterBuilder = Builders<Post>.Filter;
+        var filters = new List<FilterDefinition<Post>>();
+        
+        if (partnerId.HasValue) filters.Add(filterBuilder.Eq(p => p.PartnerId, partnerId.Value));
+        if (!string.IsNullOrWhiteSpace(status)) filters.Add(filterBuilder.Eq(p => p.Status, status));
+        if (restaurantId.HasValue) filters.Add(filterBuilder.Eq(p => p.RestaurantId, restaurantId.Value));
+
+        var filter = filters.Any() ? filterBuilder.And(filters) : filterBuilder.Empty;
+
+        var find = _posts.Find(filter);
         var totalCount = (int)await find.CountDocumentsAsync(cancellationToken);
         var items = await find.SortByDescending(p => p.CreatedAt)
             .Skip((page - 1) * pageSize)
@@ -48,12 +58,7 @@ public class PostRepository : IPostRepository
         return new PagedResult<Post>(items, totalCount, page, pageSize, totalPages);
     }
 
-    /// <summary>
-    /// Tìm kiếm bài đăng
-    /// </summary>
-    public async Task<PagedResult<Post>> SearchAsync(
-        SearchPostsQuery query, 
-        CancellationToken cancellationToken = default)
+    public async Task<PagedResult<Post>> SearchAsync(SearchPostsQuery query, CancellationToken cancellationToken = default)
     {
         var filters = new List<FilterDefinition<Post>>();
         var builder = Builders<Post>.Filter;
@@ -72,19 +77,9 @@ public class PostRepository : IPostRepository
         return new PagedResult<Post>(items, totalCount, query.Page, query.PageSize, totalPages);
     }
 
-    /// <summary>
-    /// Lấy bài đăng của một user
-    /// </summary>
-    public async Task<PagedResult<Post>> GetByAccountIdAsync(
-        string accountId,
-        int page,
-        int pageSize,
-        CancellationToken cancellationToken = default)
+    public async Task<PagedResult<Post>> GetByAccountIdAsync(int accountId, int page, int pageSize, CancellationToken cancellationToken = default)
     {
-        if (!int.TryParse(accountId, out var partnerId))
-            return new PagedResult<Post>(new List<Post>(), 0, page, pageSize, 0);
-
-        var filter = Builders<Post>.Filter.Eq(p => p.PartnerId, partnerId);
+        var filter = Builders<Post>.Filter.Eq(p => p.PartnerId, accountId);
         var totalCount = (int)await _posts.CountDocumentsAsync(filter, cancellationToken: cancellationToken);
         var items = await _posts.Find(filter)
             .SortByDescending(p => p.CreatedAt)
@@ -97,9 +92,6 @@ public class PostRepository : IPostRepository
         return new PagedResult<Post>(items, totalCount, page, pageSize, totalPages);
     }
 
-    /// <summary>
-    /// Thêm bài đăng mới
-    /// </summary>
     public async Task<Post> AddAsync(Post post, CancellationToken cancellationToken = default)
     {
         if (post.Id == 0)
@@ -117,38 +109,31 @@ public class PostRepository : IPostRepository
         return post;
     }
 
-    /// <summary>
-    /// Cập nhật bài đăng
-    /// </summary>
-    public async Task<Post> UpdateAsync(Post post, CancellationToken cancellationToken = default)
+    public async Task UpdateAsync(Post post, CancellationToken cancellationToken = default)
     {
         await _posts.ReplaceOneAsync(p => p.Id == post.Id, post, cancellationToken: cancellationToken);
-        return post;
     }
 
-    /// <summary>
-    /// Xóa bài đăng (soft delete)
-    /// </summary>
-    public async Task DeleteAsync(string id, CancellationToken cancellationToken = default)
+    public async Task DeleteAsync(int id, CancellationToken cancellationToken = default)
     {
-        if (!int.TryParse(id, out var pid)) return;
-        await _posts.DeleteOneAsync(p => p.Id == pid, cancellationToken);
+        await _posts.DeleteOneAsync(p => p.Id == id, cancellationToken);
     }
 
-    /// <summary>
-    /// Kiểm tra bài đăng có tồn tại không
-    /// </summary>
-    public async Task<bool> ExistsAsync(string id, CancellationToken cancellationToken = default)
+    public async Task<bool> ExistsAsync(int id, CancellationToken cancellationToken = default)
     {
-        if (!int.TryParse(id, out var pid)) return false;
-        var count = await _posts.CountDocumentsAsync(p => p.Id == pid, cancellationToken: cancellationToken);
+        var count = await _posts.CountDocumentsAsync(p => p.Id == id, cancellationToken: cancellationToken);
         return count > 0;
     }
 
-    /// <summary>
-    /// Lưu thay đổi
-    /// </summary>
-    public Task SaveChangesAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+    public async Task<bool> IsMoodInUseAsync(int moodId, CancellationToken cancellationToken = default)
+    {
+        var filter = Builders<Post>.Filter.ElemMatch(
+            p => p.PostMoods, 
+            pm => pm.MoodId == moodId
+        );
+        var post = await _posts.Find(filter).FirstOrDefaultAsync(cancellationToken);
+        return post != null;
+    }
 
     private async Task<int> GetNextIdAsync(string sequenceName, CancellationToken cancellationToken)
     {

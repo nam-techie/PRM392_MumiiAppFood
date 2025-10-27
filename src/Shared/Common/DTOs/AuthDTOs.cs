@@ -124,10 +124,11 @@ public record ChangePasswordRequest(
 /// <summary>
 /// DTO cho tạo notification
 /// </summary>
-public record CreateNotificationRequest(
-    string Title,
-    string Content
-);
+public record CreateNotificationRequest(int UserId, string Title, string Content);
+
+public record BroadcastNotificationRequest(string Title, string Content);
+
+public record UpdateNotificationRequest(string Title, string Content);
 
 // Giữ lại AccountDto để backward compatibility
 /// <summary>
@@ -141,4 +142,10 @@ public record AccountDto(
     string Role,
     bool IsActive,
     DateTime CreatedAt
+);
+
+public record AdminUpdateUserRequest(
+    string Fullname,
+    string Role,
+    bool IsActive
 );

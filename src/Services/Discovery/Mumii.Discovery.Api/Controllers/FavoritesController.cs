@@ -1,57 +1,154 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Mumii.Discovery.Domain.Entities;
 using Mumii.Discovery.Domain.Interfaces;
-using Mumii.Shared.Common.Models;
+using Mumii.Auth.Infrastructure.Services;
 using Mumii.Shared.Common.DTOs;
+using Mumii.Shared.Common.Models;
+using System.Linq;
+using System.Security.Claims;
+using System.Threading.Tasks;
+using System;
+using System.Collections.Generic;
+using Microsoft.Extensions.Logging;
+using Mumii.Discovery.Domain.Entities;
 
 namespace Mumii.Discovery.Api.Controllers;
 
 [ApiController]
-[Route("api/favorites")] // can be nested under users later
+[Route("api/favorites")]
+[Authorize] // Yêu cầu đăng nhập cho tất cả các API trong đây
 public class FavoritesController : ControllerBase
 {
-    private readonly IFavoriteRepository _favorites;
+    private readonly IFavoriteRepository _favoriteRepository;
+    private readonly IRestaurantRepository _restaurantRepository; // Cần để lấy thông tin nhà hàng
+    private readonly IMongoIdGenerator _idGenerator; // Cần để tạo ID
+    private readonly ILogger<FavoritesController> _logger;
 
-    public FavoritesController(IFavoriteRepository favorites)
+    public FavoritesController(
+        IFavoriteRepository favoriteRepository,
+        IRestaurantRepository restaurantRepository,
+        IMongoIdGenerator idGenerator,
+        ILogger<FavoritesController> logger)
     {
-        _favorites = favorites;
+        _favoriteRepository = favoriteRepository;
+        _restaurantRepository = restaurantRepository;
+        _idGenerator = idGenerator;
+        _logger = logger;
     }
 
-    [HttpGet("by-user/{userId}")]
-    public async Task<ActionResult<ApiResponse<List<FavoriteDto>>>> GetByUser(
-        int userId,
-        [FromQuery] int skip = 0,
-        [FromQuery] int limit = 50,
-        CancellationToken cancellationToken = default)
+    private int GetCurrentUserId()
     {
-        var list = await _favorites.GetByUserAsync(userId, skip, limit, cancellationToken);
-        var dtos = list.Select(f => new FavoriteDto(f.Id, f.UserId, f.RestaurantId, f.CreatedAt, null!)).ToList();
-        return Ok(ApiResponse<List<FavoriteDto>>.SuccessResult(dtos));
+        var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userIdStr) || !int.TryParse(userIdStr, out var userId))
+        {
+            throw new UnauthorizedAccessException("Token không hợp lệ.");
+        }
+        return userId;
     }
 
-    [HttpPost]
-    public async Task<ActionResult<ApiResponse<FavoriteDto>>> Create(
-        [FromQuery] int id,
-        [FromQuery] int userId,
-        [FromQuery] int restaurantId,
-        CancellationToken cancellationToken = default)
+    /// <summary>
+    /// (User) Lấy danh sách nhà hàng yêu thích của chính mình
+    /// </summary>
+    [HttpGet("my-favorites")]
+    public async Task<ActionResult<ApiResponse<List<FavoriteDto>>>> GetMyFavorites()
     {
-        // unique pair check
-        if (await _favorites.ExistsAsync(userId, restaurantId, cancellationToken))
-            return Ok(ApiResponse<FavoriteDto>.SuccessResult(null!, "Đã yêu thích trước đó"));
+        try
+        {
+            var userId = GetCurrentUserId();
+            var favorites = await _favoriteRepository.GetByUserAsync(userId);
 
-        var favorite = Favorite.Create(id, userId, restaurantId);
-        await _favorites.AddAsync(favorite, cancellationToken);
-        var dto = new FavoriteDto(favorite.Id, favorite.UserId, favorite.RestaurantId, favorite.CreatedAt, null!);
-        return Ok(ApiResponse<FavoriteDto>.SuccessResult(dto, "Đã thêm yêu thích"));
+            if (!favorites.Any())
+            {
+                return Ok(ApiResponse<List<FavoriteDto>>.SuccessResult(new List<FavoriteDto>()));
+            }
+
+            // Lấy thông tin chi tiết của các nhà hàng đã yêu thích
+            var restaurantIds = favorites.Select(f => f.RestaurantId);
+            var restaurants = (await _restaurantRepository.GetByIdsAsync(restaurantIds)).ToDictionary(r => r.Id);
+
+            var dtos = favorites.Select(f => 
+            {
+                restaurants.TryGetValue(f.RestaurantId, out var restaurant);
+                // Sử dụng MapToDto helper nếu có, hoặc map thủ công
+                var restaurantDto = restaurant != null ? new Mumii.Shared.Common.DTOs.RestaurantDto(restaurant.Id, restaurant.PartnerId, restaurant.Name, restaurant.Address, restaurant.Longitude, restaurant.Latitude, restaurant.Description, restaurant.AvgPrice, restaurant.Rating, restaurant.Status, restaurant.CreatedAt, new List<Mumii.Shared.Common.DTOs.RestaurantImageDto>(), new List<Mumii.Shared.Common.DTOs.ReviewDto>(), 0) : null;
+                return new FavoriteDto(f.Id, f.UserId, f.RestaurantId, f.CreatedAt, restaurantDto);
+            }).ToList();
+
+            return Ok(ApiResponse<List<FavoriteDto>>.SuccessResult(dtos));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting favorites for user.");
+            return StatusCode(500, ApiResponse.ErrorResult("Lỗi hệ thống khi lấy danh sách yêu thích."));
+        }
     }
 
-    [HttpDelete("{id}")]
-    public async Task<ActionResult<ApiResponse>> Delete(int id, CancellationToken cancellationToken = default)
+    /// <summary>
+    /// (User) Thêm một nhà hàng vào danh sách yêu thích
+    /// </summary>
+    [HttpPost("{restaurantId:int}")]
+    public async Task<ActionResult<ApiResponse<FavoriteDto>>> AddFavorite(int restaurantId)
     {
-        await _favorites.DeleteAsync(id, cancellationToken);
-        return Ok(ApiResponse.SuccessResult("Đã bỏ yêu thích"));
+        try
+        {
+            var userId = GetCurrentUserId();
+
+            // Kiểm tra nhà hàng có tồn tại không
+            var restaurantExists = await _restaurantRepository.ExistsAsync(restaurantId);
+            if (!restaurantExists)
+            {
+                return NotFound(ApiResponse.ErrorResult("Không tìm thấy nhà hàng."));
+            }
+
+            // Kiểm tra xem đã yêu thích trước đó chưa
+            if (await _favoriteRepository.ExistsAsync(userId, restaurantId))
+            {
+                return BadRequest(ApiResponse.ErrorResult("Bạn đã yêu thích nhà hàng này rồi."));
+            }
+
+            var newId = await _idGenerator.GetNextIdAsync("favorites");
+            var favorite = Favorite.Create(newId, userId, restaurantId);
+            
+            await _favoriteRepository.AddAsync(favorite);
+            _logger.LogInformation("User {UserId} favorited restaurant {RestaurantId}", userId, restaurantId);
+
+            var dto = new FavoriteDto(favorite.Id, favorite.UserId, favorite.RestaurantId, favorite.CreatedAt, null); // Không cần trả về restaurant DTO ở đây
+            return Ok(ApiResponse<FavoriteDto>.SuccessResult(dto, "Thêm vào yêu thích thành công."));
+        }
+        catch (Exception ex)
+        {
+             _logger.LogError(ex, "Error adding favorite for user.");
+            return StatusCode(500, ApiResponse.ErrorResult("Lỗi hệ thống khi thêm yêu thích."));
+        }
+    }
+
+    /// <summary>
+    /// (User) Xóa một nhà hàng khỏi danh sách yêu thích
+    /// </summary>
+    [HttpDelete("{restaurantId:int}")]
+    public async Task<ActionResult<ApiResponse>> RemoveFavorite(int restaurantId)
+    {
+        try
+        {
+            var userId = GetCurrentUserId();
+            var favorite = await _favoriteRepository.GetByUserAndRestaurantAsync(userId, restaurantId);
+
+            if (favorite == null)
+            {
+                return NotFound(ApiResponse.ErrorResult("Nhà hàng này không có trong danh sách yêu thích của bạn."));
+            }
+
+            await _favoriteRepository.DeleteAsync(favorite.Id);
+            _logger.LogInformation("User {UserId} unfavorited restaurant {RestaurantId}", userId, restaurantId);
+
+            return Ok(ApiResponse.SuccessResult("Đã xóa khỏi danh sách yêu thích."));
+        }
+        catch (Exception ex)
+        {
+             _logger.LogError(ex, "Error removing favorite for user.");
+            return StatusCode(500, ApiResponse.ErrorResult("Lỗi hệ thống khi xóa yêu thích."));
+        }
     }
 }
 
-
+public record FavoriteDto(int Id, int UserId, int RestaurantId, DateTime CreatedAt, Mumii.Shared.Common.DTOs.RestaurantDto? Restaurant);

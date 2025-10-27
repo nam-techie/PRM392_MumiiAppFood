@@ -1,6 +1,9 @@
 using MongoDB.Driver;
 using Mumii.Discovery.Domain.Entities;
 using Mumii.Discovery.Domain.Interfaces;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Mumii.Discovery.Infrastructure.Repositories;
 
@@ -32,6 +35,11 @@ public class FavoriteRepository : IFavoriteRepository
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<Favorite?> GetByUserAndRestaurantAsync(int userId, int restaurantId, CancellationToken cancellationToken = default)
+    {
+        return await _favorites.Find(f => f.UserId == userId && f.RestaurantId == restaurantId).FirstOrDefaultAsync(cancellationToken);
+    }
+
     public async Task<Favorite> AddAsync(Favorite favorite, CancellationToken cancellationToken = default)
     {
         await _favorites.InsertOneAsync(favorite, cancellationToken: cancellationToken);
@@ -43,5 +51,3 @@ public class FavoriteRepository : IFavoriteRepository
         await _favorites.DeleteOneAsync(f => f.Id == id, cancellationToken);
     }
 }
-
-

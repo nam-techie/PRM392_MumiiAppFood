@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace Mumii.Shared.Common.DTOs;
 
 /// <summary>
@@ -38,9 +40,20 @@ public record ReviewDto(
     int UserId,
     int RestaurantId,
     int Rating,
-    string Comment,
+    string? Comment,
     DateTime CreatedAt,
-    UserDto? User
+    UserDto? User,
+    string? PartnerReplyComment,
+    DateTime? PartnerReplyAt
+);
+
+/// <summary>
+/// DTO cho nhà hàng trả lời review
+/// </summary>
+public record ReplyToReviewRequest(
+    [Required]
+    [StringLength(500, ErrorMessage = "Phản hồi không được vượt quá 500 ký tự.")]
+    string Comment
 );
 
 /// <summary>
@@ -51,7 +64,7 @@ public record FavoriteDto(
     int UserId,
     int RestaurantId,
     DateTime CreatedAt,
-    RestaurantDto Restaurant
+    RestaurantDto? Restaurant // Sửa thành nullable
 );
 
 /// <summary>
@@ -106,12 +119,13 @@ public record AddRestaurantImageRequest(
 /// </summary>
 public record SearchRestaurantsQuery(
     string? Query,
-    double? Latitude,     // <<< Sửa thành double?
-    double? Longitude,    // <<< Sửa thành double?
-    double? RadiusKm,     // <<< Sửa thành double?
-    double? MinPrice,     // <<< Sửa thành double?
-    double? MaxPrice,     // <<< Sửa thành double?
-    float? MinRating,     // <<< Sửa thành float? để khớp với Rating
+    double? Latitude,
+    double? Longitude,
+    double? RadiusKm,
+    double? MinPrice,
+    double? MaxPrice,
+    float? MinRating,
+    string? Status, // <<< DI CHUYỂN LÊN TRƯỚC
     int Page = 1,
     int PageSize = 20
 );
@@ -131,8 +145,9 @@ public record PagedResult<T>(
 /// DTO cho nhà hàng gần vị trí
 /// </summary>
 public record NearbyRestaurantsQuery(
-    double Latitude,      // <<< Sửa thành double
-    double Longitude,     // <<< Sửa thành double
-    double RadiusKm = 5.0, // <<< Sửa thành double
+    double Latitude,
+    double Longitude,
+    string? Status, // <<< DI CHUYỂN LÊN TRƯỚC
+    double RadiusKm = 5.0,
     int Limit = 50
 );

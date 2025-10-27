@@ -1,270 +1,279 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Mumii.Social.Domain.Entities;
-using Mumii.Social.Domain.Interfaces;
-using Mumii.Shared.Common.Constants;
 using Mumii.Shared.Common.DTOs;
 using Mumii.Shared.Common.Models;
+using Mumii.Social.Domain.Entities;
+using Mumii.Social.Domain.Interfaces;
+using Mumii.Auth.Infrastructure.Services;
+using Mumii.Social.Domain;
+using System.Security.Claims;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Collections.Generic;
+using Mumii.Auth.Domain.Interfaces;
+using Mumii.Discovery.Domain.Interfaces;
+using System;
+using Microsoft.Extensions.Logging;
 
 namespace Mumii.Social.Api.Controllers;
 
-/// <summary>
-/// Controller xử lý social posts
-/// </summary>
 [ApiController]
-[Route(ApiRoutes.Social.Base)]
+[Route("api/posts")]
 public class PostsController : ControllerBase
 {
     private readonly IPostRepository _postRepository;
-    private readonly IPostMoodRepository _postMoodRepository;
+    private readonly ICommentRepository _commentRepository;
     private readonly ILogger<PostsController> _logger;
+    private readonly IUserRepository _userRepository;
+    private readonly IRestaurantRepository _restaurantRepository;
+    private readonly IMoodRepository _moodRepository;
+    private readonly IMongoIdGenerator _idGenerator; // Cần để tạo ID cho comment
 
     public PostsController(
         IPostRepository postRepository,
-        IPostMoodRepository postMoodRepository,
-        ILogger<PostsController> logger)
+        ICommentRepository commentRepository,
+        ILogger<PostsController> logger,
+        IUserRepository userRepository,
+        IRestaurantRepository restaurantRepository,
+        IMoodRepository moodRepository,
+        IMongoIdGenerator idGenerator)
     {
         _postRepository = postRepository;
-        _postMoodRepository = postMoodRepository;
+        _commentRepository = commentRepository;
         _logger = logger;
+        _userRepository = userRepository;
+        _restaurantRepository = restaurantRepository;
+        _moodRepository = moodRepository;
+        _idGenerator = idGenerator;
+    }
+
+    private bool TryGetCurrentUserId(out int userId)
+    {
+        userId = 0;
+        var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return !string.IsNullOrEmpty(userIdStr) && int.TryParse(userIdStr, out userId);
     }
 
     /// <summary>
-    /// Lấy danh sách bài đăng
+    /// (Public) Lấy danh sách bài đăng (newsfeed)
     /// </summary>
     [HttpGet]
     public async Task<ActionResult<ApiResponse<PagedResult<PostDto>>>> GetPosts(
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20,
-        [FromQuery] int? partnerId = null,
-        [FromQuery] int? restaurantId = null,
-        CancellationToken cancellationToken = default)
+        [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
         try
         {
-            if (page < 1) page = 1;
-            if (pageSize < 1 || pageSize > 100) pageSize = 20;
-
-            var query = new SearchPostsQuery(
-                MoodIds: null,
-                RestaurantId: restaurantId,
-                PartnerId: partnerId,
-                FromDate: null,
-                ToDate: null,
-                Page: page,
-                PageSize: pageSize
-            );
-            var result = await _postRepository.SearchAsync(query, cancellationToken);
-            
-            var postDtos = result.Items.Select(MapToDto).ToList();
-            var pagedResult = new PagedResult<PostDto>(
-                postDtos,
-                result.TotalCount,
-                result.Page,
-                result.PageSize,
-                result.TotalPages
-            );
-
-            return Ok(ApiResponse<PagedResult<PostDto>>.SuccessResult(pagedResult));
+            // Luôn chỉ lấy các bài đã duyệt cho newsfeed
+            var pagedPosts = await _postRepository.GetPagedAsync(page, pageSize, status: "Approved");
+            var dtos = await MapPostsToDtosAsync(pagedPosts.Items);
+            var result = new PagedResult<PostDto>(dtos.ToList(), pagedPosts.TotalCount, pagedPosts.Page, pagedPosts.PageSize, pagedPosts.TotalPages);
+            return Ok(ApiResponse<PagedResult<PostDto>>.SuccessResult(result));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting posts");
-            return StatusCode(500, ApiResponse<PagedResult<PostDto>>.ErrorResult(
-                "Lỗi hệ thống",
-                "Đã xảy ra lỗi khi lấy danh sách bài đăng"));
+            _logger.LogError(ex, "Error getting posts for newsfeed.");
+            return StatusCode(500, ApiResponse.ErrorResult("Lỗi hệ thống khi tải bài đăng."));
         }
     }
 
-    [HttpPost("{id}/moods/{moodId}")]
-    public async Task<ActionResult<ApiResponse>> AttachMood(int id, int moodId, CancellationToken cancellationToken)
-    {
-        var exists = await _postRepository.ExistsAsync(id.ToString(), cancellationToken);
-        if (!exists) return NotFound(ApiResponse.ErrorResult("Không tìm thấy", "Bài đăng không tồn tại"));
-        if (!await _postMoodRepository.ExistsAsync(id, moodId, cancellationToken))
-            await _postMoodRepository.AddAsync(id, moodId, cancellationToken);
-        return Ok(ApiResponse.SuccessResult("Đã gán mood cho post"));
-    }
-
-    [HttpDelete("{id}/moods/{moodId}")]
-    public async Task<ActionResult<ApiResponse>> DetachMood(int id, int moodId, CancellationToken cancellationToken)
-    {
-        var exists = await _postRepository.ExistsAsync(id.ToString(), cancellationToken);
-        if (!exists) return NotFound(ApiResponse.ErrorResult("Không tìm thấy", "Bài đăng không tồn tại"));
-        await _postMoodRepository.RemoveAsync(id, moodId, cancellationToken);
-        return Ok(ApiResponse.SuccessResult("Đã bỏ mood khỏi post"));
-    }
-
     /// <summary>
-    /// Lấy thông tin bài đăng theo ID
+    /// (Public) Lấy chi tiết một bài đăng
     /// </summary>
-    [HttpGet("{id}")]
-    public async Task<ActionResult<ApiResponse<PostDto>>> GetPost(
-        string id,
-        CancellationToken cancellationToken)
+    [HttpGet("{id:int}")]
+    public async Task<ActionResult<ApiResponse<PostDto>>> GetPostById(int id)
     {
         try
         {
-            var post = await _postRepository.GetByIdAsync(id, cancellationToken);
-            if (post == null)
+            var post = await _postRepository.GetByIdAsync(id);
+            // Chỉ trả về nếu post tồn tại VÀ đã được duyệt
+            if (post == null || post.Status != "Approved")
             {
-                return NotFound(ApiResponse<PostDto>.ErrorResult(
-                    "Không tìm thấy",
-                    "Bài đăng không tồn tại"));
+                return NotFound(ApiResponse.ErrorResult("Không tìm thấy bài đăng."));
+            }
+            var dtos = await MapPostsToDtosAsync(new List<Post> { post });
+            return Ok(ApiResponse<PostDto>.SuccessResult(dtos.First()));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting post by id {PostId}", id);
+            return StatusCode(500, ApiResponse.ErrorResult("Lỗi hệ thống khi tải chi tiết bài đăng."));
+        }
+    }
+
+    /// <summary>
+    /// (Public) Lấy danh sách bình luận của một bài đăng
+    /// </summary>
+    [HttpGet("{postId:int}/comments")]
+    public async Task<ActionResult<ApiResponse<List<CommentDto>>>> GetCommentsForPost(int postId)
+    {
+        try
+        {
+            var comments = await _commentRepository.GetByPostIdAsync(postId);
+
+            if (!comments.Any())
+            {
+                return Ok(ApiResponse<List<CommentDto>>.SuccessResult(new List<CommentDto>()));
             }
 
-            var postDto = MapToDto(post);
-            return Ok(ApiResponse<PostDto>.SuccessResult(postDto));
+            var userIds = comments.Select(c => c.UserId).Distinct().ToList();
+            var users = (await _userRepository.GetByIdsAsync(userIds)).ToDictionary(u => u.Id);
+
+            var dtos = comments.Select(c =>
+            {
+                users.TryGetValue(c.UserId, out var user);
+                var userDto = user != null ? new UserDto(user.Id, user.Email, user.Fullname, user.Role, user.IsActive, user.LoginMethod, user.CreatedAt, null) : null;
+                return new CommentDto(c.Id, c.PostId, c.UserId, c.Content, c.CreatedAt, userDto);
+            }).ToList();
+
+            return Ok(ApiResponse<List<CommentDto>>.SuccessResult(dtos));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting post {PostId}", id);
-            return StatusCode(500, ApiResponse<PostDto>.ErrorResult(
-                "Lỗi hệ thống",
-                "Đã xảy ra lỗi khi lấy thông tin bài đăng"));
+            _logger.LogError(ex, "Error getting comments for post {PostId}", postId);
+            return StatusCode(500, ApiResponse.ErrorResult("Lỗi hệ thống khi tải bình luận."));
         }
     }
 
     /// <summary>
-    /// Tạo bài đăng mới
+    /// (User) Thêm một bình luận mới vào bài đăng
     /// </summary>
-    [HttpPost]
-    public async Task<ActionResult<ApiResponse<PostDto>>> CreatePost(
-        [FromBody] CreatePostRequest request,
-        CancellationToken cancellationToken)
+    [HttpPost("{postId:int}/comments")]
+    [Authorize] // Chỉ user đã đăng nhập mới được bình luận
+    public async Task<ActionResult<ApiResponse<CommentDto>>> AddComment(int postId, [FromBody] CreateCommentRequest request)
     {
         try
         {
-            var partnerId = 1; // TODO: lấy từ JWT sau
-            var post = Post.Create(
-                id: 0,
-                partnerId: partnerId,
-                title: request.Title,
-                content: request.Content,
-                imageUrl: request.ImageUrl,
-                restaurantId: request.RestaurantId
-            );
+            if (!TryGetCurrentUserId(out var userId))
+                return Unauthorized(ApiResponse.ErrorResult("Token không hợp lệ."));
 
-            await _postRepository.AddAsync(post, cancellationToken);
-            await _postRepository.SaveChangesAsync(cancellationToken);
-
-            var postDto = MapToDto(post);
+            var postExists = await _postRepository.ExistsAsync(postId);
+            if (!postExists)
+            {
+                return NotFound(ApiResponse.ErrorResult("Không tìm thấy bài đăng để bình luận."));
+            }
             
-            _logger.LogInformation("Post created: {PostId}", post.Id);
-            return CreatedAtAction(
-                nameof(GetPost), 
-                new { id = post.Id }, 
-                ApiResponse<PostDto>.SuccessResult(postDto, "Tạo bài đăng thành công"));
+            var newId = await _idGenerator.GetNextIdAsync("comments");
+            var comment = Comment.Create(newId, postId, userId, request.Content);
+            
+            var createdComment = await _commentRepository.AddAsync(comment);
+            
+            var user = await _userRepository.GetByIdAsync(userId);
+            var userDto = user != null ? new UserDto(user.Id, user.Email, user.Fullname, user.Role, user.IsActive, user.LoginMethod, user.CreatedAt, null) : null;
+            
+            var dto = new CommentDto(createdComment.Id, createdComment.PostId, createdComment.UserId, createdComment.Content, createdComment.CreatedAt, userDto);
+            
+            _logger.LogInformation("User {UserId} commented on post {PostId}", userId, postId);
+            return Ok(ApiResponse<CommentDto>.SuccessResult(dto, "Bình luận thành công."));
         }
         catch (ArgumentException ex)
         {
-            _logger.LogWarning("Post creation validation failed: {Message}", ex.Message);
-            return BadRequest(ApiResponse<PostDto>.ErrorResult("Dữ liệu không hợp lệ", ex.Message));
+            return BadRequest(ApiResponse.ErrorResult(ex.Message));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating post");
-            return StatusCode(500, ApiResponse<PostDto>.ErrorResult(
-                "Lỗi hệ thống",
-                "Đã xảy ra lỗi trong quá trình tạo bài đăng"));
+             _logger.LogError(ex, "Error adding comment for post {PostId}", postId);
+            return StatusCode(500, ApiResponse.ErrorResult("Lỗi hệ thống khi thêm bình luận."));
         }
     }
 
     /// <summary>
-    /// Cập nhật bài đăng
+    /// (Public) Lấy danh sách bài đăng của một nhà hàng cụ thể
     /// </summary>
-    [HttpPut("{id}")]
-    public async Task<ActionResult<ApiResponse<PostDto>>> UpdatePost(
-        string id,
-        [FromBody] UpdatePostRequest request,
-        CancellationToken cancellationToken)
+    [HttpGet("by-restaurant/{restaurantId:int}")]
+    public async Task<ActionResult<ApiResponse<PagedResult<PostDto>>>> GetPostsByRestaurant(
+        int restaurantId, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
         try
         {
-            var post = await _postRepository.GetByIdAsync(id, cancellationToken);
-            if (post == null)
-            {
-                return NotFound(ApiResponse<PostDto>.ErrorResult(
-                    "Không tìm thấy",
-                    "Bài đăng không tồn tại"));
-            }
-
-            post.Update(
-                title: request.Title,
-                content: request.Content,
-                imageUrl: request.ImageUrl,
-                restaurantId: request.RestaurantId
+            var pagedPosts = await _postRepository.GetPagedAsync(
+                page: page, 
+                pageSize: pageSize, 
+                status: "Approved", // Chỉ lấy bài đã duyệt
+                restaurantId: restaurantId // Lọc theo nhà hàng
             );
-
-            await _postRepository.UpdateAsync(post, cancellationToken);
-            await _postRepository.SaveChangesAsync(cancellationToken);
-
-            var postDto = MapToDto(post);
             
-            _logger.LogInformation("Post updated: {PostId}", post.Id);
-            return Ok(ApiResponse<PostDto>.SuccessResult(postDto, "Cập nhật bài đăng thành công"));
-        }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(ApiResponse<PostDto>.ErrorResult("Dữ liệu không hợp lệ", ex.Message));
+            var dtos = await MapPostsToDtosAsync(pagedPosts.Items);
+            var result = new PagedResult<PostDto>(dtos.ToList(), pagedPosts.TotalCount, pagedPosts.Page, pagedPosts.PageSize, pagedPosts.TotalPages);
+            
+            return Ok(ApiResponse<PagedResult<PostDto>>.SuccessResult(result));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating post {PostId}", id);
-            return StatusCode(500, ApiResponse<PostDto>.ErrorResult(
-                "Lỗi hệ thống",
-                "Đã xảy ra lỗi khi cập nhật bài đăng"));
+            _logger.LogError(ex, "Error getting posts for restaurant {RestaurantId}", restaurantId);
+            return StatusCode(500, ApiResponse.ErrorResult("Lỗi hệ thống khi tải bài đăng."));
         }
     }
 
-    /// <summary>
-    /// Xóa bài đăng
-    /// </summary>
-    [HttpDelete("{id}")]
-    public async Task<ActionResult<ApiResponse>> DeletePost(
-        string id,
-        CancellationToken cancellationToken)
+    // Phương thức helper để map Post sang PostDto, tái sử dụng logic
+    private async Task<List<PostDto>> MapPostsToDtosAsync(IEnumerable<Post> posts)
     {
-        try
+        if (!posts.Any())
         {
-            var exists = await _postRepository.ExistsAsync(id, cancellationToken);
-            if (!exists)
-            {
-                return NotFound(ApiResponse.ErrorResult(
-                    "Không tìm thấy",
-                    "Bài đăng không tồn tại"));
-            }
-
-            await _postRepository.DeleteAsync(id, cancellationToken);
-            await _postRepository.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Post deleted: {PostId}", id);
-            return Ok(ApiResponse.SuccessResult("Xóa bài đăng thành công"));
+            return new List<PostDto>();
         }
-        catch (Exception ex)
+
+        // 1. Thu thập tất cả các ID cần thiết một cách hiệu quả
+        var postList = posts.ToList(); // Chuyển sang List để tránh lặp lại nhiều lần
+        var partnerIds = postList.Select(p => p.PartnerId).Distinct();
+        var restaurantIds = postList.Select(p => p.RestaurantId).Where(id => id.HasValue).Select(id => id!.Value).Distinct();
+        var moodIds = postList.SelectMany(p => p.PostMoods).Select(pm => pm.MoodId).Distinct();
+
+        // 2. Query dữ liệu liên quan song song để tăng hiệu năng
+        var partnersTask = _userRepository.GetByIdsAsync(partnerIds);
+        var restaurantsTask = _restaurantRepository.GetByIdsAsync(restaurantIds);
+        var moodsTask = _moodRepository.GetByIdsAsync(moodIds);
+
+        await Task.WhenAll(partnersTask, restaurantsTask, moodsTask);
+
+        var partners = partnersTask.Result.ToDictionary(u => u.Id);
+        var restaurants = restaurantsTask.Result.ToDictionary(r => r.Id);
+        var moods = moodsTask.Result.ToDictionary(m => m.Id);
+
+        // 3. Map sang DTO
+        var dtos = postList.Select(p =>
         {
-            _logger.LogError(ex, "Error deleting post {PostId}", id);
-            return StatusCode(500, ApiResponse.ErrorResult(
-                "Lỗi hệ thống",
-                "Đã xảy ra lỗi khi xóa bài đăng"));
-        }
-    }
+            // Map Partner
+            partners.TryGetValue(p.PartnerId, out var partner);
+            var partnerDto = partner != null
+                ? new UserDto(partner.Id, partner.Email, partner.Fullname, partner.Role, partner.IsActive, partner.LoginMethod, partner.CreatedAt, null)
+                : null;
 
-    /// <summary>
-    /// Map Post entity to DTO
-    /// </summary>
-    private static PostDto MapToDto(Post post)
-    {
-        return new PostDto(
-            Id: post.Id,
-            PartnerId: post.PartnerId,
-            RestaurantId: post.RestaurantId,
-            Title: post.Title,
-            Content: post.Content,
-            ImageUrl: post.ImageUrl,
-            CreatedAt: post.CreatedAt,
-            Moods: new List<MoodDto>(),
-            Restaurant: null,
-            Partner: new UserDto(0, "", "", "User", true, "", DateTime.UtcNow, null)
-        );
+            // Map Restaurant (SỬA LẠI ĐÂY)
+            restaurants.TryGetValue(p.RestaurantId ?? 0, out var restaurant);
+            var restaurantDto = restaurant != null
+                ? new RestaurantDto(
+                    restaurant.Id,
+                    restaurant.PartnerId,
+                    restaurant.Name,
+                    restaurant.Address,
+                    restaurant.Longitude,
+                    restaurant.Latitude,
+                    restaurant.Description,
+                    restaurant.AvgPrice,
+                    restaurant.Rating,
+                    restaurant.Status,
+                    restaurant.CreatedAt,
+                    // Map danh sách ảnh của nhà hàng
+                    restaurant.Images?.Select(img => new RestaurantImageDto(img.Id, restaurant.Id, img.ImageUrl, img.CreatedAt)).ToList() ?? new List<RestaurantImageDto>(),
+                    new List<ReviewDto>(), // Tạm thời
+                    0 // Tạm thời
+                )
+                : null;
+
+            // Map Moods
+            var postMoods = p.PostMoods
+                .Select(pm => moods.TryGetValue(pm.MoodId, out var mood) ? new MoodDto(mood.Id, mood.Name, mood.Description, mood.CreatedAt) : null)
+                .Where(m => m != null)
+                .ToList();
+
+            return new PostDto(
+                p.Id, p.PartnerId, p.RestaurantId, p.Title, p.Content, p.ImageUrl, p.CreatedAt,
+                postMoods!,
+                restaurantDto, // Giờ đã là kiểu RestaurantDto?
+                partnerDto   // Sửa PostDto để chấp nhận UserDto?
+            );
+        }).ToList();
+
+        return dtos;
     }
 }

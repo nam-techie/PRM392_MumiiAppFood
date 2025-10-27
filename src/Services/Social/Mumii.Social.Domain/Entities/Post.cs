@@ -1,8 +1,8 @@
+using System;
+using System.Collections.Generic;
+
 namespace Mumii.Social.Domain.Entities;
 
-/// <summary>
-/// Entity bài đăng theo schema mới (Mongo)
-/// </summary>
 public class Post
 {
     public int Id { get; private set; }
@@ -13,6 +13,7 @@ public class Post
     public string? ImageUrl { get; private set; }
     public DateTime CreatedAt { get; private set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; private set; } = DateTime.UtcNow;
+    public string Status { get; private set; } = string.Empty; // THÊM THUỘC TÍNH NÀY
 
     public List<PostMood> PostMoods { get; private set; } = new();
 
@@ -31,6 +32,7 @@ public class Post
             Content = content.Trim(),
             ImageUrl = imageUrl?.Trim(),
             RestaurantId = restaurantId,
+            Status = "Pending", // MẶC ĐỊNH LÀ PENDING
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
@@ -45,6 +47,29 @@ public class Post
         Content = content.Trim();
         ImageUrl = imageUrl?.Trim();
         RestaurantId = restaurantId;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void SetImage(string? imageUrl)
+    {
+        // Có thể thêm validation URL ở đây
+        ImageUrl = imageUrl?.Trim();
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void Approve()
+    {
+        if (Status != "Pending")
+            throw new InvalidOperationException("Chỉ có thể duyệt bài đăng đang ở trạng thái chờ.");
+        Status = "Approved";
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void Decline()
+    {
+        if (Status != "Pending")
+            throw new InvalidOperationException("Chỉ có thể từ chối bài đăng đang ở trạng thái chờ.");
+        Status = "Declined";
         UpdatedAt = DateTime.UtcNow;
     }
 }

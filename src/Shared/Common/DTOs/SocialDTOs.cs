@@ -1,60 +1,38 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace Mumii.Shared.Common.DTOs;
 
 /// <summary>
 /// DTO cho mood/tâm trạng
 /// </summary>
-public record MoodDto(
-    int Id,
-    string Name,
-    string? Description,
-    DateTime CreatedAt
-);
+public record MoodDto(int Id, string Name, string? Description, DateTime CreatedAt);
 
 /// <summary>
 /// DTO cho bài đăng theo schema mới
 /// </summary>
-public record PostDto(
-    int Id,
-    int PartnerId,
-    int? RestaurantId,
-    string Title,
-    string Content,
-    string? ImageUrl,
-    DateTime CreatedAt,
-    List<MoodDto> Moods,
-    RestaurantDto? Restaurant,
-    UserDto Partner
-);
+public record PostDto(int Id, int PartnerId, int? RestaurantId, string Title, string Content, string? ImageUrl, DateTime CreatedAt, List<MoodDto> Moods, RestaurantDto? Restaurant, UserDto? Partner);
 
 /// <summary>
 /// DTO cho tạo bài đăng mới
 /// </summary>
-public record CreatePostRequest(
-    string Title,
-    string Content,
-    string? ImageUrl,
-    int? RestaurantId,
-    List<int> MoodIds
-);
+public record CreatePostRequest(string Title, string Content, string? ImageUrl, int? RestaurantId);
 
 /// <summary>
 /// DTO cho cập nhật bài đăng
 /// </summary>
-public record UpdatePostRequest(
-    string Title,
-    string Content,
-    string? ImageUrl,
-    int? RestaurantId,
-    List<int> MoodIds
-);
+public record UpdatePostRequest(string Title, string Content, string? ImageUrl, int? RestaurantId);
+
 
 /// <summary>
 /// DTO cho tạo mood mới
 /// </summary>
-public record CreateMoodRequest(
-    string Name,
-    string? Description
-);
+public record CreateMoodRequest(string Name, string? Description);
+
+public record UpdateMoodRequest(string Name, string? Description);
+
+// DTO này đã có: UpdatePostRequest
+// Chúng ta sẽ tạo một DTO mới cho Admin
+public record AdminUpdatePostRequest(string Title, string Content, string? ImageUrl, int? RestaurantId);
 
 /// <summary>
 /// DTO cho tìm kiếm bài đăng
@@ -90,6 +68,12 @@ public static class PostMoods
     };
 }
 
+public record RestaurantSna(int Id, string Name, string Address);
+
+
+
+public record PartnerDto(int Id, string Fullname, string Email, string? Avatar);
+
 /// <summary>
 /// Enum cho các loại reaction
 /// </summary>
@@ -104,3 +88,22 @@ public static class ReactionTypes
         Like, Love, Wow
     };
 }
+
+
+public record CommentDto(
+    int Id,       // int
+    int PostId,   // int
+    int UserId,   // int
+    string Content,
+    DateTime CreatedAt,
+    UserDto? User
+);
+
+/// <summary>
+/// DTO để User gửi bình luận mới
+/// </summary>
+public record CreateCommentRequest(
+    [Required(ErrorMessage = "Nội dung bình luận không được để trống.")]
+    [StringLength(1000, ErrorMessage = "Bình luận không được vượt quá 1000 ký tự.")]
+    string Content
+);

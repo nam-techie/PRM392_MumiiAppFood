@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+
 namespace Mumii.Social.Domain.Entities;
 
 /// <summary>
@@ -22,7 +25,7 @@ public class Mood
     /// <summary>
     /// Tạo mood mới
     /// </summary>
-    public static Mood Create(string name, string? description = null)
+    public static Mood Create(int id, string name, string? description = null)
     {
         // Validate input
         if (string.IsNullOrWhiteSpace(name))
@@ -36,6 +39,7 @@ public class Mood
 
         return new Mood
         {
+            Id = id,
             Name = name.Trim(),
             Description = description?.Trim(),
             CreatedAt = DateTime.UtcNow,

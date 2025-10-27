@@ -3,6 +3,10 @@ using Mumii.Discovery.Domain.Entities;
 using Mumii.Discovery.Domain.Interfaces;
 using Mumii.Shared.Common.DTOs;
 using MongoDB.Bson;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using System.Threading;
+using System;
 
 namespace Mumii.Discovery.Infrastructure.Repositories;
 
@@ -26,6 +30,12 @@ public class RestaurantRepository : IRestaurantRepository
         return await _restaurants.Find(r => r.Id == id).FirstOrDefaultAsync(cancellationToken);
     }
 
+    public async Task<IEnumerable<Restaurant>> GetByIdsAsync(IEnumerable<int> ids, CancellationToken cancellationToken = default)
+    {
+        var filter = Builders<Restaurant>.Filter.In(r => r.Id, ids);
+        return await _restaurants.Find(filter).ToListAsync(cancellationToken);
+    }
+
     /// <summary>
     /// Lấy danh sách nhà hàng có phân trang
     /// </summary>
@@ -46,6 +56,25 @@ public class RestaurantRepository : IRestaurantRepository
         return new PagedResult<Restaurant>(items, totalCount, page, pageSize, totalPages);
     }
 
+    public async Task<PagedResult<Restaurant>> GetPagedByStatusAsync(
+    int page, int pageSize, string? status, CancellationToken cancellationToken = default)
+    {
+        var filter = string.IsNullOrWhiteSpace(status) 
+            ? Builders<Restaurant>.Filter.Empty 
+            : Builders<Restaurant>.Filter.Eq(r => r.Status, status);
+
+        var find = _restaurants.Find(filter);
+        var totalCount = (int)await find.CountDocumentsAsync(cancellationToken);
+        var items = await find.SortByDescending(r => r.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Limit(pageSize)
+            .ToListAsync(cancellationToken);
+        
+        var totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
+
+        return new PagedResult<Restaurant>(items, totalCount, page, pageSize, totalPages);
+    }
+
     /// <summary>
     /// Tìm kiếm nhà hàng
     /// </summary>
@@ -55,6 +84,11 @@ public class RestaurantRepository : IRestaurantRepository
     {
         var filters = new List<FilterDefinition<Restaurant>>();
         var builder = Builders<Restaurant>.Filter;
+
+        if (!string.IsNullOrWhiteSpace(query.Status))
+        {
+            filters.Add(builder.Eq(r => r.Status, query.Status));
+        }
 
         // Tìm kiếm theo từ khóa
         if (!string.IsNullOrWhiteSpace(query.Query))
@@ -124,14 +158,20 @@ public class RestaurantRepository : IRestaurantRepository
         var latDelta = radiusKm / 110.574;
         var lngDelta = radiusKm / (111.320 * Math.Cos(lat * Math.PI / 180));
 
-        var filter = Builders<Restaurant>.Filter.And(
+        var boundingBoxFilter = Builders<Restaurant>.Filter.And(
             Builders<Restaurant>.Filter.Gte(r => r.Latitude, lat - latDelta),
             Builders<Restaurant>.Filter.Lte(r => r.Latitude, lat + latDelta),
             Builders<Restaurant>.Filter.Gte(r => r.Longitude, lng - lngDelta),
             Builders<Restaurant>.Filter.Lte(r => r.Longitude, lng + lngDelta)
         );
 
-        var restaurants = await _restaurants.Find(filter)
+        var statusFilter = string.IsNullOrWhiteSpace(query.Status) 
+            ? Builders<Restaurant>.Filter.Empty 
+            : Builders<Restaurant>.Filter.Eq(r => r.Status, query.Status);
+        
+        var finalFilter = Builders<Restaurant>.Filter.And(boundingBoxFilter, statusFilter);
+
+        var restaurants = await _restaurants.Find(finalFilter)
             .Limit(query.Limit)
             .ToListAsync(cancellationToken);
 

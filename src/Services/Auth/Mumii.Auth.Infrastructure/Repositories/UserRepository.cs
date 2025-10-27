@@ -1,6 +1,10 @@
 using MongoDB.Driver;
 using Mumii.Auth.Domain.Entities;
 using Mumii.Auth.Domain.Interfaces;
+using Mumii.Shared.Common.DTOs;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using System.Threading;
 
 namespace Mumii.Auth.Infrastructure.Repositories;
 
@@ -26,6 +30,12 @@ public class UserRepository : IUserRepository
     {
         var filter = Builders<User>.Filter.Eq(u => u.Id, id);
         return await _users.Find(filter).FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public async Task<IEnumerable<User>> GetByIdsAsync(IEnumerable<int> ids, CancellationToken cancellationToken = default)
+    {
+        var filter = Builders<User>.Filter.In(u => u.Id, ids);
+        return await _users.Find(filter).ToListAsync(cancellationToken);
     }
 
     public async Task<User?> GetByGoogleIdAsync(string googleId, CancellationToken cancellationToken = default)
@@ -61,5 +71,20 @@ public class UserRepository : IUserRepository
             .Limit(limit)
             .ToListAsync(cancellationToken);
     }
-}
 
+    public async Task<PagedResult<User>> GetPagedAsync(int page, int pageSize, CancellationToken cancellationToken = default)
+    {
+        var find = _users.Find(_ => true); // Lấy tất cả user
+
+        var totalCount = (int)await find.CountDocumentsAsync(cancellationToken);
+
+        var items = await find.SortByDescending(u => u.CreatedAt)
+                              .Skip((page - 1) * pageSize)
+                              .Limit(pageSize)
+                              .ToListAsync(cancellationToken);
+
+        var totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
+
+        return new PagedResult<User>(items, totalCount, page, pageSize, totalPages);
+    }
+}

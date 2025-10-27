@@ -1,6 +1,9 @@
 using MongoDB.Driver;
 using Mumii.Auth.Domain.Entities;
 using Mumii.Auth.Domain.Interfaces;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Mumii.Auth.Infrastructure.Repositories;
 
@@ -28,6 +31,12 @@ public class ProfileRepository : IProfileRepository
         return await _profiles.Find(filter).FirstOrDefaultAsync(cancellationToken);
     }
 
+    public async Task<IEnumerable<Profile>> GetByUserIdsAsync(IEnumerable<int> userIds, CancellationToken cancellationToken = default)
+    {
+        var filter = Builders<Profile>.Filter.In(p => p.UserId, userIds);
+        return await _profiles.Find(filter).ToListAsync(cancellationToken);
+    }
+
     public async Task<Profile> AddAsync(Profile profile, CancellationToken cancellationToken = default)
     {
         await _profiles.InsertOneAsync(profile, cancellationToken: cancellationToken);
@@ -41,4 +50,3 @@ public class ProfileRepository : IProfileRepository
         return profile;
     }
 }
-

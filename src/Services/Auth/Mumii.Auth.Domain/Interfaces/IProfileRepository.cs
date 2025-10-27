@@ -1,4 +1,7 @@
 using Mumii.Auth.Domain.Entities;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using System.Threading;
 
 namespace Mumii.Auth.Domain.Interfaces;
 
@@ -26,5 +29,9 @@ public interface IProfileRepository
     /// Cập nhật profile
     /// </summary>
     Task<Profile> UpdateAsync(Profile profile, CancellationToken cancellationToken = default);
-}
 
+    /// <summary>
+    /// Tìm nhiều profiles theo danh sách User IDs
+    /// </summary>
+    Task<IEnumerable<Profile>> GetByUserIdsAsync(IEnumerable<int> userIds, CancellationToken cancellationToken = default);
+}
