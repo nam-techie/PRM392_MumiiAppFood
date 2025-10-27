@@ -55,38 +55,19 @@ app.UseCors("AllowAll");
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
-    var isDev = app.Environment.IsDevelopment();
-
-    string? authUrl = Environment.GetEnvironmentVariable("AUTH_URL");
-    string? discoveryUrl = Environment.GetEnvironmentVariable("DISCOVERY_URL");
-    string? socialUrl = Environment.GetEnvironmentVariable("SOCIAL_URL");
-    string? aiUrl = Environment.GetEnvironmentVariable("AI_URL");
-
-    if (isDev)
-    {
-        c.SwaggerEndpoint("http://localhost:8081/index.html", "Auth API v1");
-        c.SwaggerEndpoint("http://localhost:8082/index.html", "Discovery API v1");
-        c.SwaggerEndpoint("http://localhost:8083/index.html", "Social API v1");
-        c.SwaggerEndpoint("http://localhost:8084/index.html", "AI API v1");
-    }
-    else
-    {
-        // Production: use proxied swagger endpoints through the gateway
-        c.SwaggerEndpoint("/swagger/auth/v1/swagger.json", "Auth API v1");
-        c.SwaggerEndpoint("/swagger/discovery/v1/swagger.json", "Discovery API v1");
-        c.SwaggerEndpoint("/swagger/social/v1/swagger.json", "Social API v1");
-        c.SwaggerEndpoint("/swagger/ai/v1/swagger.json", "AI API v1");
-    }
-
+    // Tất cả swagger JSON đều đi qua gateway (cả Development và Production)
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Mumii.ApiGateway v1");
+    c.SwaggerEndpoint("/swagger/auth/v1/swagger.json", "Auth API v1");
+    c.SwaggerEndpoint("/swagger/discovery/v1/swagger.json", "Discovery API v1");
+    c.SwaggerEndpoint("/swagger/social/v1/swagger.json", "Social API v1");
+    c.SwaggerEndpoint("/swagger/ai/v1/swagger.json", "AI API v1");
+    
     c.RoutePrefix = string.Empty; // Swagger UI tại root "/"
     c.DocumentTitle = "Mumii API Gateway - Swagger UI";
     c.DisplayRequestDuration();
     c.EnableDeepLinking();
     c.EnableFilter();
     c.ShowExtensions();
-
-    // Ensure the gateway's own Swagger doc is always available
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Mumii.ApiGateway v1");
 });
 
 // Health check endpoints

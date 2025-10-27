@@ -7,6 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="../../../Shared/Common/Mumii.Shared.Common.csproj" />
     <ProjectReference Include="../Mumii.Auth.Domain/Mumii.Auth.Domain.csproj" />
   </ItemGroup>
@@ -21,6 +25,9 @@
     <PackageReference Include="SendGrid" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+    <PackageReference Include="Google.Apis.Auth" />
+    <PackageReference Include="MailKit" />
+    <PackageReference Include="MimeKit" />
   </ItemGroup>
 
 </Project>

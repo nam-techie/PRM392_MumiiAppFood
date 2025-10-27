@@ -2,6 +2,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Mumii.Discovery.Domain.Interfaces;
 using Mumii.Discovery.Infrastructure.Repositories;
+using Mumii.Discovery.Infrastructure.Data;
 using Mumii.Shared.Common.Data;
 
 namespace Mumii.Discovery.Infrastructure;
@@ -18,6 +19,9 @@ public static class DependencyInjection
         this IServiceCollection services, 
         IConfiguration configuration)
     {
+        // Cấu hình MongoDB serialization
+        MongoDbConfiguration.ConfigureMongoDb();
+        
         // MongoDB
         services.AddMongoDb(configuration);
 

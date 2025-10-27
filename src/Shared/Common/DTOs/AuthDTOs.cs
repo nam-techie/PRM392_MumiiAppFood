@@ -59,6 +59,13 @@ public record RefreshTokenRequest(
 );
 
 /// <summary>
+/// DTO cho response refresh token
+/// </summary>
+public record RefreshTokenResponse(
+    string AccessToken
+);
+
+/// <summary>
 /// DTO cho thông tin user
 /// </summary>
 public record UserDto(
@@ -104,6 +111,27 @@ public record UpdateProfileRequest(
     string? Gender,
     string? PhoneNumber,
     string? Address
+);
+
+/// <summary>
+/// DTO cho profile detail (extend UserDto với Profile info)
+/// </summary>
+public record ProfileDetailDto(
+    int Id,
+    string Email,
+    string Fullname,
+    string Role,
+    bool IsActive,
+    string LoginMethod,
+    DateTime CreatedAt,
+    ProfileDto? Profile
+);
+
+/// <summary>
+/// DTO cho upload avatar response
+/// </summary>
+public record UploadAvatarResponse(
+    string AvatarUrl
 );
 
 /// <summary>
