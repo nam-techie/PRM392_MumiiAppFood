@@ -53,11 +53,18 @@ public class PartnerPostsController : ControllerBase
     private int GetCurrentPartnerId()
     {
         var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userIdStr) || !int.TryParse(userIdStr, out var userId))
+
+        if (string.IsNullOrEmpty(userIdStr))
         {
-            throw new UnauthorizedAccessException("Token không hợp lệ hoặc không chứa User ID.");
+            userIdStr = User.FindFirstValue("user_id");
         }
-        return userId;
+
+        if (string.IsNullOrEmpty(userIdStr))
+        {
+            throw new InvalidOperationException("User ID claim not found in token.");
+        }
+
+        return int.Parse(userIdStr);
     }
 
     /// <summary>
