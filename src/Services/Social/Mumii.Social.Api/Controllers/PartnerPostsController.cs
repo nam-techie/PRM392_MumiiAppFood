@@ -196,6 +196,63 @@ public class PartnerPostsController : ControllerBase
     }
 
     /// <summary>
+    /// (Partner) Gán một mood vào bài đăng của mình.
+    /// </summary>
+    [HttpPost("{postId:int}/moods/{moodId:int}")]
+    public async Task<ActionResult<ApiResponse>> AddMoodToPost(int postId, int moodId)
+    {
+        var partnerId = GetCurrentPartnerId();
+        var post = await _postRepository.GetByIdAsync(postId);
+
+        // 1. Kiểm tra quyền sở hữu
+        if (post == null || post.PartnerId != partnerId)
+        {
+            return Forbid();
+        }
+
+        // 2. Kiểm tra xem Mood có tồn tại không
+        var mood = await _moodRepository.GetByIdAsync(moodId);
+        if (mood == null)
+        {
+            return NotFound(ApiResponse.ErrorResult("Không tìm thấy mood này."));
+        }
+
+        // 3. Gọi logic từ entity
+        post.AddMood(moodId);
+
+        // 4. Lưu thay đổi vào DB
+        await _postRepository.UpdateAsync(post);
+        _logger.LogInformation("Partner {PartnerId} added mood {MoodId} to post {PostId}", partnerId, moodId, postId);
+
+        return Ok(ApiResponse.SuccessResult("Gán mood vào bài đăng thành công."));
+    }
+
+    /// <summary>
+    /// (Partner) Gỡ một mood khỏi bài đăng của mình.
+    /// </summary>
+    [HttpDelete("{postId:int}/moods/{moodId:int}")]
+    public async Task<ActionResult<ApiResponse>> RemoveMoodFromPost(int postId, int moodId)
+    {
+        var partnerId = GetCurrentPartnerId();
+        var post = await _postRepository.GetByIdAsync(postId);
+
+        // 1. Kiểm tra quyền sở hữu
+        if (post == null || post.PartnerId != partnerId)
+        {
+            return Forbid();
+        }
+
+        // 2. Gọi logic từ entity
+        post.RemoveMood(moodId);
+
+        // 3. Lưu thay đổi vào DB
+        await _postRepository.UpdateAsync(post);
+        _logger.LogInformation("Partner {PartnerId} removed mood {MoodId} from post {PostId}", partnerId, moodId, postId);
+
+        return Ok(ApiResponse.SuccessResult("Gỡ mood khỏi bài đăng thành công."));
+    }
+
+    /// <summary>
     /// Partner lấy chi tiết một bài đăng của chính mình theo ID
     /// </summary>
     [HttpGet("{id:int}")]
