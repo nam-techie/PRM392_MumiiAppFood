@@ -7,10 +7,10 @@ using DotNetEnv;
 using System.Linq;
 using Mumii.Auth.Domain.Interfaces;
 using Mumii.Auth.Infrastructure.Services;
-using Microsoft.OpenApi.Models; // <-- Added this using statement
+using Microsoft.OpenApi.Models;
 using System.IdentityModel.Tokens.Jwt;
 using Mumii.Auth.Infrastructure.Settings; // Cho CloudinarySettings
-
+using Mumii.Auth.Infrastructure.Repositories; // Thêm
 
 // Load .env file
 Env.Load();
@@ -27,8 +27,9 @@ builder.Host.UseSerilog((context, configuration) =>
 // Add services to the container
 builder.Services.AddControllers();
 
-// Swagger/OpenAPI
-builder.Services.AddEndpointsApiExplorer();
+// Đăng ký các repository từ service khác để giao tiếp
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IMongoIdGenerator, MongoIdGenerator>();
 
 // Cấu hình CloudinarySettings
 builder.Services.Configure<CloudinarySettings>(builder.Configuration.GetSection("CloudinarySettings"));
@@ -42,17 +43,15 @@ builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
     {
-        Title = "Mumii Auth API",
+        Title = "Mumii Discovery API",
         Version = "v1",
-        Description = "ASP.NET Core Web API with JWT Bearer Authentication"
+        Description = "ASP.NET Core Web API for Mumii Discovery Service"
     });
 
-    // JWT Bearer authorization trong Swagger - theo chuẩn OpenAPI
+    // JWT Bearer authorization trong Swagger
     c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
     {
-        Description = "JWT Authorization header using the Bearer scheme. " +
-                     "Enter 'Bearer' [space] and then your token in the text input below.\\n\\n" +
-                     "Example: \"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\"",
+        Description = "JWT Authorization header using the Bearer scheme. Example: \"Bearer {token}\"",
         Name = "Authorization",
         In = Microsoft.OpenApi.Models.ParameterLocation.Header,
         Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
@@ -69,21 +68,15 @@ builder.Services.AddSwaggerGen(c =>
                 {
                     Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
                     Id = "Bearer"
-                },
-                Scheme = "oauth2",
-                Name = "Bearer",
-                In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+                }
             },
-            new List<string>()
+            new string[] {}
         }
     });
 });
 
 // Infrastructure services
 builder.Services.AddInfrastructure(builder.Configuration);
-
-// Register IMongoIdGenerator
-builder.Services.AddScoped<IMongoIdGenerator, MongoIdGenerator>();
 
 // JWT Authentication
 var jwtKey = Environment.GetEnvironmentVariable("JWT_SECRET_KEY") ?? 
@@ -159,25 +152,11 @@ var enableSwagger = app.Environment.IsDevelopment() ||
 
 if (enableSwagger)
 {
-    // Set swagger server URL để Try it out đi qua API Gateway
-    app.UseSwagger(c =>
-    {
-        c.PreSerializeFilters.Add((swagger, httpReq) =>
-        {
-            var scheme = httpReq.Headers["X-Forwarded-Proto"].FirstOrDefault() ?? httpReq.Scheme;
-            var host = httpReq.Headers["X-Forwarded-Host"].FirstOrDefault() ?? httpReq.Host.Value;
-            var basePath = Environment.GetEnvironmentVariable("SWAGGER_BASE_PATH") ?? string.Empty;
-            swagger.Servers = new List<OpenApiServer>
-            {
-                new() { Url = $"{scheme}://{host}{basePath}" }
-            };
-        });
-    });
-
+    app.UseSwagger();
     app.UseSwaggerUI(c =>
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "Mumii Discovery API v1");
-        c.RoutePrefix = string.Empty; // Swagger ở root URL
+        c.RoutePrefix = string.Empty;
     });
 }
 
