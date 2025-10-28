@@ -2,7 +2,7 @@ services:
   - type: web
     name: mumii-gateway
     env: docker
-    rootDir: src/ApiGateway
+    rootDir: .
     dockerfilePath: src/ApiGateway/Dockerfile
     plan: free
     autoDeploy: true
@@ -10,6 +10,12 @@ services:
     envVars:
       - key: ASPNETCORE_URLS
         value: http://0.0.0.0:${PORT}
+    buildFilter:
+      includedPaths:
+        - src/ApiGateway/**
+        - src/Shared/**
+        - Mumii.Microservices.sln
+        - global.json
       # Điền 4 biến dưới sau khi 4 service có URL public rồi redeploy gateway
       # - key: ReverseProxy__Clusters__auth-cluster__Destinations__auth-service__Address
       #   value: https://mumii-auth.onrender.com/
@@ -23,7 +29,7 @@ services:
   - type: web
     name: mumii-auth
     env: docker
-    rootDir: src/Services/Auth/Mumii.Auth.Api
+    rootDir: .
     dockerfilePath: src/Services/Auth/Mumii.Auth.Api/Dockerfile
     plan: free
     autoDeploy: true
@@ -31,11 +37,17 @@ services:
     envVars:
       - key: ASPNETCORE_HTTP_PORTS
         value: "8080"
+    buildFilter:
+      includedPaths:
+        - src/Services/Auth/**
+        - src/Shared/**
+        - Mumii.Microservices.sln
+        - global.json
 
   - type: web
     name: mumii-discovery
     env: docker
-    rootDir: src/Services/Discovery/Mumii.Discovery.Api
+    rootDir: .
     dockerfilePath: src/Services/Discovery/Mumii.Discovery.Api/Dockerfile
     plan: free
     autoDeploy: true
@@ -43,11 +55,17 @@ services:
     envVars:
       - key: ASPNETCORE_HTTP_PORTS
         value: "8080"
+    buildFilter:
+      includedPaths:
+        - src/Services/Discovery/**
+        - src/Shared/**
+        - Mumii.Microservices.sln
+        - global.json
 
   - type: web
     name: mumii-social
     env: docker
-    rootDir: src/Services/Social/Mumii.Social.Api
+    rootDir: .
     dockerfilePath: src/Services/Social/Mumii.Social.Api/Dockerfile
     plan: free
     autoDeploy: true
@@ -55,11 +73,17 @@ services:
     envVars:
       - key: ASPNETCORE_HTTP_PORTS
         value: "8080"
+    buildFilter:
+      includedPaths:
+        - src/Services/Social/**
+        - src/Shared/**
+        - Mumii.Microservices.sln
+        - global.json
 
   - type: web
     name: mumii-ai
     env: docker
-    rootDir: src/Services/AI/Mumii.AI.Api
+    rootDir: .
     dockerfilePath: src/Services/AI/Mumii.AI.Api/Dockerfile
     plan: free
     autoDeploy: true
@@ -67,4 +91,10 @@ services:
     envVars:
       - key: ASPNETCORE_HTTP_PORTS
         value: "8080"
+    buildFilter:
+      includedPaths:
+        - src/Services/AI/**
+        - src/Shared/**
+        - Mumii.Microservices.sln
+        - global.json
 
