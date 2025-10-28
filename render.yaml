@@ -1,0 +1,70 @@
+services:
+  - type: web
+    name: mumii-gateway
+    env: docker
+    rootDir: src/ApiGateway
+    dockerfilePath: src/ApiGateway/Dockerfile
+    plan: free
+    autoDeploy: true
+    healthCheckPath: /health
+    envVars:
+      - key: ASPNETCORE_URLS
+        value: http://0.0.0.0:${PORT}
+      # Điền 4 biến dưới sau khi 4 service có URL public rồi redeploy gateway
+      # - key: ReverseProxy__Clusters__auth-cluster__Destinations__auth-service__Address
+      #   value: https://mumii-auth.onrender.com/
+      # - key: ReverseProxy__Clusters__discovery-cluster__Destinations__discovery-service__Address
+      #   value: https://mumii-discovery.onrender.com/
+      # - key: ReverseProxy__Clusters__social-cluster__Destinations__social-service__Address
+      #   value: https://mumii-social.onrender.com/
+      # - key: ReverseProxy__Clusters__ai-cluster__Destinations__ai-service__Address
+      #   value: https://mumii-ai.onrender.com/
+
+  - type: web
+    name: mumii-auth
+    env: docker
+    rootDir: src/Services/Auth/Mumii.Auth.Api
+    dockerfilePath: src/Services/Auth/Mumii.Auth.Api/Dockerfile
+    plan: free
+    autoDeploy: true
+    healthCheckPath: /health
+    envVars:
+      - key: ASPNETCORE_HTTP_PORTS
+        value: "8080"
+
+  - type: web
+    name: mumii-discovery
+    env: docker
+    rootDir: src/Services/Discovery/Mumii.Discovery.Api
+    dockerfilePath: src/Services/Discovery/Mumii.Discovery.Api/Dockerfile
+    plan: free
+    autoDeploy: true
+    healthCheckPath: /health
+    envVars:
+      - key: ASPNETCORE_HTTP_PORTS
+        value: "8080"
+
+  - type: web
+    name: mumii-social
+    env: docker
+    rootDir: src/Services/Social/Mumii.Social.Api
+    dockerfilePath: src/Services/Social/Mumii.Social.Api/Dockerfile
+    plan: free
+    autoDeploy: true
+    healthCheckPath: /health
+    envVars:
+      - key: ASPNETCORE_HTTP_PORTS
+        value: "8080"
+
+  - type: web
+    name: mumii-ai
+    env: docker
+    rootDir: src/Services/AI/Mumii.AI.Api
+    dockerfilePath: src/Services/AI/Mumii.AI.Api/Dockerfile
+    plan: free
+    autoDeploy: true
+    healthCheckPath: /health
+    envVars:
+      - key: ASPNETCORE_HTTP_PORTS
+        value: "8080"
+
