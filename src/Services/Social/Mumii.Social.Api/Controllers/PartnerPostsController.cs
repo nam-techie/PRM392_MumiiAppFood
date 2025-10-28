@@ -195,6 +195,37 @@ public class PartnerPostsController : ControllerBase
         return Ok(ApiResponse<object>.SuccessResult(new { imageUrl = url }, "Tải ảnh lên thành công."));
     }
 
+    /// <summary>
+    /// Partner lấy chi tiết một bài đăng của chính mình theo ID
+    /// </summary>
+    [HttpGet("{id:int}")]
+    public async Task<ActionResult<ApiResponse<PostDto>>> GetMyPostById(int id)
+    {
+        try
+        {
+            var partnerId = GetCurrentPartnerId();
+            var post = await _postRepository.GetByIdAsync(id);
+
+            // 1. Kiểm tra xem bài đăng có tồn tại không
+            // 2. Kiểm tra xem bài đăng này có thuộc sở hữu của Partner đang đăng nhập không
+            if (post == null || post.PartnerId != partnerId)
+            {
+                return NotFound(ApiResponse.ErrorResult("Không tìm thấy bài đăng."));
+            }
+
+            // Tái sử dụng phương thức map hiệu quả để lấy đầy đủ thông tin
+            var dtos = await MapPostsToDtosAsync(new List<Post> { post });
+
+            return Ok(ApiResponse<PostDto>.SuccessResult(dtos.First()));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting post {PostId} for partner {PartnerId}", id, GetCurrentPartnerId());
+            return StatusCode(500, ApiResponse.ErrorResult("Lỗi hệ thống khi tải chi tiết bài đăng."));
+        }
+    }
+
+
     // Tái sử dụng phương thức Map hiệu quả từ AdminPostsController
     private async Task<List<PostDto>> MapPostsToDtosAsync(IEnumerable<Post> posts)
     {
