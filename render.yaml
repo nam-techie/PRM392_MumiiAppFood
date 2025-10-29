@@ -10,21 +10,28 @@ services:
     envVars:
       - key: ASPNETCORE_URLS
         value: http://0.0.0.0:${PORT}
+      - key: ReverseProxy__Clusters__auth-cluster__Destinations__auth-service__Address
+        value: https://mumii-auth.onrender.com/
+      - key: ReverseProxy__Clusters__discovery-cluster__Destinations__discovery-service__Address
+        value: https://mumii-discovery.onrender.com/
+      - key: ReverseProxy__Clusters__social-cluster__Destinations__social-service__Address
+        value: https://mumii-social.onrender.com/
+      - key: ReverseProxy__Clusters__ai-cluster__Destinations__ai-service__Address
+        value: https://mumii-ai.onrender.com/
     buildFilter:
       paths:
         - src/ApiGateway/**
         - src/Shared/**
         - Mumii.Microservices.sln
         - global.json
-      # Điền 4 biến dưới sau khi 4 service có URL public rồi redeploy gateway
-      # - key: ReverseProxy__Clusters__auth-cluster__Destinations__auth-service__Address
-      #   value: https://mumii-auth.onrender.com/
-      # - key: ReverseProxy__Clusters__discovery-cluster__Destinations__discovery-service__Address
-      #   value: https://mumii-discovery.onrender.com/
-      # - key: ReverseProxy__Clusters__social-cluster__Destinations__social-service__Address
-      #   value: https://mumii-social.onrender.com/
-      # - key: ReverseProxy__Clusters__ai-cluster__Destinations__ai-service__Address
-      #   value: https://mumii-ai.onrender.com/
+      - key: ReverseProxy__Clusters__auth-cluster__Destinations__auth-service__Address
+        value: https://mumii-auth.onrender.com/
+      - key: ReverseProxy__Clusters__discovery-cluster__Destinations__discovery-service__Address
+        value: https://mumii-discovery.onrender.com/
+      - key: ReverseProxy__Clusters__social-cluster__Destinations__social-service__Address
+        value: https://mumii-social.onrender.com/
+      - key: ReverseProxy__Clusters__ai-cluster__Destinations__ai-service__Address
+        value: https://mumii-ai.onrender.com/
 
   - type: web
     name: mumii-auth
