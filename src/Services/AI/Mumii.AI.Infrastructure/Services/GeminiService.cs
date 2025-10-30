@@ -22,47 +22,14 @@ public class GeminiService : IGeminiService
     {
         _logger = logger;
 
-		// Load .env locally (for development or when host env/config isn't wired)
-		TryLoadLocalEnv(_logger);
-			string? source = null;
-			string? Read(string? value, string src)
-			{
-				if (!string.IsNullOrWhiteSpace(value)) { source = src; return value; }
-				return null;
-			}
-
-			_apiKey =
-				Read(configuration["Gemini:ApiKey"], "config:Gemini:ApiKey")
-				?? Read(configuration["GEMINI_API_KEY"], "config:GEMINI_API_KEY")
-				?? Read(Environment.GetEnvironmentVariable("Gemini__ApiKey"), "env:Gemini__ApiKey")
-				?? Read(Environment.GetEnvironmentVariable("GEMINI_API_KEY"), "env:GEMINI_API_KEY")
-				?? string.Empty;
-
-        _apiKey = _apiKey?.Trim() ?? string.Empty;
+        _apiKey = configuration["GEMINI_API_KEY"] ?? string.Empty;
 
         if (string.IsNullOrWhiteSpace(_apiKey))
         {
-				throw new InvalidOperationException("⚠️ Gemini API key chưa được cấu hình (Gemini:ApiKey, Gemini__ApiKey hoặc GEMINI_API_KEY)");
+            throw new InvalidOperationException("⚠️ Gemini API key chưa được cấu hình. Vui lòng đặt biến môi trường GEMINI_API_KEY.");
         }
 
-			// Handle values wrapped like ${AIza...}. If the inner part looks like a real key, accept it; otherwise fail.
-			if (_apiKey.StartsWith("${") && _apiKey.EndsWith("}"))
-			{
-				var inner = _apiKey.Substring(2, _apiKey.Length - 3).Trim();
-				if (!string.IsNullOrEmpty(inner) && inner.StartsWith("AIza"))
-				{
-					_logger.LogWarning("API key was wrapped in ${...}. Auto-unwrapped for use. Please remove ${} in configuration.");
-					_apiKey = inner;
-				}
-				else
-				{
-					throw new InvalidOperationException("API key không hợp lệ: phát hiện placeholder ${...}. Hãy đặt giá trị key thật (ví dụ AiZa...).");
-				}
-			}
-
-			var masked = _apiKey.Length >= 10 ? $"{_apiKey[..6]}...{_apiKey[^4..]}" : "(short/invalid)";
-			string digest = ComputeSha256Hex(_apiKey);
-			_logger.LogInformation("Gemini API key detected from {Source} (masked): {Key} | len={Len} | sha256={Sha}", source ?? "unknown", masked, _apiKey.Length, digest);
+        _logger.LogInformation("Gemini Service initialized with a valid API Key.");
     }
 
 	private static void TryLoadLocalEnv(ILogger logger)
