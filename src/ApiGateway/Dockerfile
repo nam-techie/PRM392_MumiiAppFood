@@ -7,7 +7,7 @@ RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
-// Copy solution file and global.json to pin SDK
+# Copy solution file and global.json to pin SDK
 COPY ["global.json", "./"]
 COPY ["Mumii.Microservices.sln", "./"]
 
