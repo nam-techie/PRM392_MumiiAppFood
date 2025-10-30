@@ -36,6 +36,10 @@ services:
     envVars:
       - key: ASPNETCORE_HTTP_PORTS
         value: "8080"
+      - key: MongoDB__ConnectionString
+        value: "mongodb+srv://mumii_auth:nam180259@mumii-auth.e7tvtg3.mongodb.net/?appName=mumii-auth"
+      - key: MongoDB__DatabaseName
+        value: "mumii_auth"
     buildFilter:
       paths:
         - src/Services/Auth/**
@@ -54,6 +58,10 @@ services:
     envVars:
       - key: ASPNETCORE_HTTP_PORTS
         value: "8080"
+      - key: MongoDB__ConnectionString
+        value: "mongodb+srv://mumii_discovery:nam180259@mumii-discovery.ik6c7st.mongodb.net/?appName=mumii-discovery"
+      - key: MongoDB__DatabaseName
+        value: "mumii_discovery"
     buildFilter:
       paths:
         - src/Services/Discovery/**
@@ -72,6 +80,10 @@ services:
     envVars:
       - key: ASPNETCORE_HTTP_PORTS
         value: "8080"
+      - key: MongoDB__ConnectionString
+        value: "mongodb+srv://mumii_social:nam180259@mumii-social.jd8nd6f.mongodb.net/?appName=mumii-social"
+      - key: MongoDB__DatabaseName
+        value: "mumii_social"
     buildFilter:
       paths:
         - src/Services/Social/**
@@ -90,6 +102,10 @@ services:
     envVars:
       - key: ASPNETCORE_HTTP_PORTS
         value: "8080"
+      - key: MongoDB__ConnectionString
+        value: "mongodb+srv://mumii_ai:nam180259@mumii-ai.qxttywo.mongodb.net/?appName=mumii-ai"
+      - key: MongoDB__DatabaseName
+        value: "mumii_ai"
     buildFilter:
       paths:
         - src/Services/AI/**
