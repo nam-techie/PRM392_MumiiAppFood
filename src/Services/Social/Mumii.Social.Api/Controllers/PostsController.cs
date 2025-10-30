@@ -10,8 +10,7 @@ using System.Security.Claims;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Collections.Generic;
-using Mumii.Auth.Domain.Interfaces;
-using Mumii.Discovery.Domain.Interfaces;
+// Removed conflicting domain interface usings to avoid ambiguity with Social.Domain.Interfaces
 using System;
 using Microsoft.Extensions.Logging;
 

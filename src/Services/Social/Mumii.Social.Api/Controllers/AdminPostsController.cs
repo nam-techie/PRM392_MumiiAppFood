@@ -10,10 +10,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
-using Mumii.Auth.Domain.Interfaces;
-using Mumii.Discovery.Domain.Interfaces;
-using Mumii.Auth.Domain.Entities;
-using Mumii.Discovery.Domain.Entities;
+// Removed conflicting domain interface usings to avoid ambiguity with Social.Domain.Interfaces
 
 namespace Mumii.Social.Api.Controllers;
 

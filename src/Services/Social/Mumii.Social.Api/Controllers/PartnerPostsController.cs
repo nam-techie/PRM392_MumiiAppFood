@@ -8,12 +8,12 @@ using System.Security.Claims;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Collections.Generic;
-using Mumii.Auth.Domain.Interfaces; // Cho User/Partner
-using Mumii.Discovery.Domain.Interfaces; // Cho Restaurant
+// Removed conflicting domain interface usings to avoid ambiguity with Social.Domain.Interfaces
 using Microsoft.Extensions.Logging;
 using System;
 using Microsoft.AspNetCore.Http;
 using Mumii.Auth.Infrastructure.Services;
+using AuthPhotoService = Mumii.Auth.Domain.Interfaces.IPhotoService;
 
 
 namespace Mumii.Social.Api.Controllers;
@@ -26,7 +26,7 @@ public class PartnerPostsController : ControllerBase
     private readonly IPostRepository _postRepository;
     private readonly IMongoIdGenerator _idGenerator;
     private readonly ILogger<PartnerPostsController> _logger;
-    private readonly IPhotoService _photoService; // <-- Đảm bảo đã inject
+    private readonly AuthPhotoService _photoService; // <-- Đảm bảo đã inject
     // Inject các repo cần thiết để map DTO
     private readonly IUserRepository _userRepository;
     private readonly IRestaurantRepository _restaurantRepository;
@@ -39,7 +39,7 @@ public class PartnerPostsController : ControllerBase
         IUserRepository userRepository,
         IRestaurantRepository restaurantRepository,
         IMoodRepository moodRepository,
-        IPhotoService photoService) // <-- Thêm IPhotoService vào constructor
+        AuthPhotoService photoService) // <-- Thêm IPhotoService vào constructor
     {
         _postRepository = postRepository;
         _idGenerator = idGenerator;

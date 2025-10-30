@@ -9,13 +9,10 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
-using Mumii.Auth.Domain.Interfaces;
 using Mumii.Auth.Infrastructure.Services;
 using Mumii.Auth.Infrastructure.Settings;
-using Mumii.Discovery.Domain.Interfaces;
-using Mumii.Discovery.Infrastructure.Repositories;
-using Mumii.Auth.Infrastructure.Repositories;
 using Mumii.Social.Domain.Interfaces;
+using AuthPhotoService = Mumii.Auth.Domain.Interfaces.IPhotoService;
 using Mumii.Social.Infrastructure.Repositories;
 
 // Load .env file
@@ -38,14 +35,12 @@ builder.Services.AddControllers();
 // Register IMongoIdGenerator
 builder.Services.AddScoped<IMongoIdGenerator, MongoIdGenerator>();
 
-// Register other repositories
-builder.Services.AddScoped<IUserRepository, UserRepository>();
-builder.Services.AddScoped<IRestaurantRepository, RestaurantRepository>();
+// Repositories for cross-service calls are registered via AddInfrastructure (HttpClient adapters)
 
 // Cấu hình CloudinarySettings
 builder.Services.Configure<CloudinarySettings>(builder.Configuration.GetSection("CloudinarySettings"));
 // Đăng ký PhotoService
-builder.Services.AddScoped<IPhotoService, PhotoService>();
+builder.Services.AddScoped<AuthPhotoService, PhotoService>();
 
 builder.Services.AddScoped<IPostRepository, PostRepository>();
 builder.Services.AddScoped<ICommentRepository, CommentRepository>();
