@@ -44,7 +44,10 @@ public class ReviewsController : ControllerBase
     private bool TryGetCurrentUserId(out int userId)
     {
         userId = 0;
-        var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        // === FIX START ===
+        // Sửa lại để lấy đúng claim "user_id" từ token
+        var userIdStr = User.FindFirstValue("user_id");
+        // === FIX END ===
         return !string.IsNullOrEmpty(userIdStr) && int.TryParse(userIdStr, out userId);
     }
 
