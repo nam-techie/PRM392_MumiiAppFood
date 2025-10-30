@@ -18,6 +18,11 @@ public interface IReviewRepository
     Task<PagedResult<Review>> GetByRestaurantIdAsync(int restaurantId, int page, int pageSize, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Kiểm tra xem người dùng đã review nhà hàng này chưa
+    /// </summary>
+    Task<bool> HasUserReviewedRestaurantAsync(int userId, int restaurantId, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Cập nhật một review (ví dụ: thêm/sửa reply)
     /// </summary>
     Task UpdateAsync(Review review, CancellationToken cancellationToken = default);

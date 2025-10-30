@@ -119,6 +119,15 @@ public class Restaurant
         UpdatedAt = DateTime.UtcNow;
     }
 
+    /// <summary>
+    /// Cập nhật điểm rating trung bình của nhà hàng.
+    /// </summary>
+    public void UpdateRating(float newRating)
+    {
+        Rating = newRating;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
     // Phương thức cho Admin duyệt
     public void Approve()
     {

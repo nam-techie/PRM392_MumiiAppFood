@@ -5,7 +5,6 @@ using Mumii.Discovery.Domain.Interfaces;
 using Mumii.Shared.Common.Models;
 using Mumii.Shared.Common.DTOs;
 using Mumii.Auth.Domain.Interfaces; // Cho IUserRepository, IMongoIdGenerator
-using Mumii.Auth.Domain.Interfaces;
 using Mumii.Auth.Infrastructure.Services;
 using System.Linq;
 using System.Threading;
@@ -22,8 +21,8 @@ namespace Mumii.Discovery.Api.Controllers;
 public class ReviewsController : ControllerBase
 {
     private readonly IReviewRepository _reviewRepository;
-    private readonly IRestaurantRepository _restaurantRepository; // Cần để kiểm tra post tồn tại
-    private readonly IUserRepository _userRepository; // Cần để lấy thông tin user
+    private readonly IRestaurantRepository _restaurantRepository;
+    private readonly IUserRepository _userRepository;
     private readonly IMongoIdGenerator _idGenerator;
     private readonly ILogger<ReviewsController> _logger;
 
@@ -44,11 +43,31 @@ public class ReviewsController : ControllerBase
     private bool TryGetCurrentUserId(out int userId)
     {
         userId = 0;
-        // === FIX START ===
-        // Sửa lại để lấy đúng claim "user_id" từ token
         var userIdStr = User.FindFirstValue("user_id");
-        // === FIX END ===
         return !string.IsNullOrEmpty(userIdStr) && int.TryParse(userIdStr, out userId);
+    }
+
+    private async Task RecalculateRestaurantRating(int restaurantId)
+    {
+        var restaurant = await _restaurantRepository.GetByIdAsync(restaurantId);
+        if (restaurant == null)
+        {
+            _logger.LogWarning("Restaurant {RestaurantId} not found when recalculating rating.", restaurantId);
+            return;
+        }
+
+        var allReviews = await _reviewRepository.GetByRestaurantIdAsync(restaurantId, 1, int.MaxValue); // Lấy tất cả reviews
+        if (allReviews.Items.Any())
+        {
+            var averageRating = allReviews.Items.Average(r => r.Rating);
+            restaurant.UpdateRating((float)averageRating);
+        }
+        else
+        {
+            restaurant.UpdateRating(0.0f); // Không có review nào, đặt rating về 0
+        }
+        await _restaurantRepository.UpdateAsync(restaurant);
+        _logger.LogInformation("Recalculated rating for restaurant {RestaurantId} to {Rating}", restaurantId, restaurant.Rating);
     }
 
     /// <summary>
@@ -65,7 +84,6 @@ public class ReviewsController : ControllerBase
             return Ok(ApiResponse<PagedResult<ReviewDto>>.SuccessResult(new PagedResult<ReviewDto>(new List<ReviewDto>(), 0, page, pageSize, 0)));
         }
 
-        // Lấy thông tin người dùng cho các review
         var userIds = pagedResult.Items.Select(r => r.UserId).Distinct();
         var users = (await _userRepository.GetByIdsAsync(userIds)).ToDictionary(u => u.Id);
 
@@ -92,15 +110,23 @@ public class ReviewsController : ControllerBase
             if (!TryGetCurrentUserId(out var userId))
                 return Unauthorized(ApiResponse.ErrorResult("Token không hợp lệ."));
             
-            // TODO: Kiểm tra xem nhà hàng có tồn tại không
-            // var restaurantExists = await _restaurantRepository.ExistsAsync(restaurantId);
-            // if (!restaurantExists) return NotFound(ApiResponse.ErrorResult("Không tìm thấy nhà hàng."));
+            var restaurantExists = await _restaurantRepository.ExistsAsync(restaurantId);
+            if (!restaurantExists) return NotFound(ApiResponse.ErrorResult("Không tìm thấy nhà hàng."));
+
+            // Kiểm tra xem người dùng đã review nhà hàng này chưa
+            var hasReviewed = await _reviewRepository.HasUserReviewedRestaurantAsync(userId, restaurantId);
+            if (hasReviewed)
+            {
+                return BadRequest(ApiResponse.ErrorResult("Bạn đã đánh giá nhà hàng này rồi."));
+            }
 
             var newId = await _idGenerator.GetNextIdAsync("reviews");
             var review = Review.Create(newId, userId, restaurantId, request.Rating, request.Comment);
             
             var createdReview = await _reviewRepository.AddAsync(review);
             
+            await RecalculateRestaurantRating(restaurantId);
+
             var user = await _userRepository.GetByIdAsync(userId);
             var userDto = user != null ? new UserDto(user.Id, user.Email, user.Fullname, user.Role, user.IsActive, user.LoginMethod, user.CreatedAt, null) : null;
 
@@ -110,6 +136,55 @@ public class ReviewsController : ControllerBase
             return Ok(ApiResponse<ReviewDto>.SuccessResult(dto, "Tạo review thành công"));
         }
         catch(ArgumentException ex) { return BadRequest(ApiResponse.ErrorResult(ex.Message)); }
+    }
+
+    /// <summary>
+    /// (User) Cập nhật review của chính mình
+    /// </summary>
+    [HttpPut("{id:int}")]
+    [Authorize]
+    public async Task<ActionResult<ApiResponse<ReviewDto>>> UpdateReview(int id, [FromBody] UpdateReviewRequest request)
+    {
+        int userId = 0; // Khai báo userId ở đây
+        try
+        {
+            if (!TryGetCurrentUserId(out userId))
+                return Unauthorized(ApiResponse.ErrorResult("Token không hợp lệ."));
+
+            var review = await _reviewRepository.GetByIdAsync(id);
+
+            if (review == null)
+            {
+                return NotFound(ApiResponse.ErrorResult("Không tìm thấy review."));
+            }
+
+            if (review.UserId != userId)
+            {
+                return Forbid(); // Không có quyền cập nhật review của người khác
+            }
+
+            review.Update(request.Rating, request.Comment); // Sửa từ UpdateReview thành Update
+            await _reviewRepository.UpdateAsync(review);
+
+            await RecalculateRestaurantRating(review.RestaurantId);
+
+            var user = await _userRepository.GetByIdAsync(userId);
+            var userDto = user != null ? new UserDto(user.Id, user.Email, user.Fullname, user.Role, user.IsActive, user.LoginMethod, user.CreatedAt, null) : null;
+
+            var dto = new ReviewDto(review.Id, review.UserId, review.RestaurantId, review.Rating, review.Comment, review.CreatedAt, userDto, review.PartnerReplyComment, review.PartnerReplyAt);
+
+            _logger.LogInformation("User {UserId} updated review {ReviewId}", userId, id);
+            return Ok(ApiResponse<ReviewDto>.SuccessResult(dto, "Cập nhật review thành công"));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse.ErrorResult(ex.Message));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating review {ReviewId} by user {UserId}", id, userId);
+            return StatusCode(500, ApiResponse.ErrorResult("Đã xảy ra lỗi nội bộ khi cập nhật review."));
+        }
     }
 
     /// <summary>
@@ -126,11 +201,14 @@ public class ReviewsController : ControllerBase
 
         if (review == null || review.UserId != userId)
         {
-            // Không cho biết review có tồn tại hay không, chỉ báo không có quyền
             return Forbid();
         }
 
+        var restaurantId = review.RestaurantId; // Lưu lại restaurantId trước khi xóa review
         await _reviewRepository.DeleteAsync(id);
+        
+        await RecalculateRestaurantRating(restaurantId);
+
         _logger.LogInformation("User {UserId} deleted review {ReviewId}", userId, id);
         return Ok(ApiResponse.SuccessResult("Đã xóa review"));
     }
