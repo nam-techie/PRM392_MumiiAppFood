@@ -38,10 +38,7 @@ public class FavoritesController : ControllerBase
 
     private int GetCurrentUserId()
     {
-        // === FIX START ===
-        // Thay đổi để lấy claim "user_id" một cách tường minh, an toàn hơn.
         var userIdStr = User.FindFirstValue("user_id"); 
-        // === FIX END ===
 
         if (string.IsNullOrEmpty(userIdStr) || !int.TryParse(userIdStr, out var userId))
         {
@@ -74,7 +71,31 @@ public class FavoritesController : ControllerBase
             var dtos = favorites.Select(f => 
             {
                 restaurants.TryGetValue(f.RestaurantId, out var restaurant);
-                var restaurantDto = restaurant != null ? new Mumii.Shared.Common.DTOs.RestaurantDto(restaurant.Id, restaurant.PartnerId, restaurant.Name, restaurant.Address, restaurant.Longitude, restaurant.Latitude, restaurant.Description, restaurant.AvgPrice, restaurant.Rating, restaurant.Status, restaurant.CreatedAt, new List<Mumii.Shared.Common.DTOs.RestaurantImageDto>(), new List<Mumii.Shared.Common.DTOs.ReviewDto>(), 0) : null;
+
+                // === FIX START ===
+                // Sửa lại logic mapping cho RestaurantImageDto theo đúng thuộc tính của Entity
+                var imageDtos = restaurant?.Images
+                    .Select(img => new RestaurantImageDto(img.Id, restaurant.Id, img.ImageUrl, img.CreatedAt))
+                    .ToList() ?? new List<RestaurantImageDto>();
+
+                var restaurantDto = restaurant != null ? new RestaurantDto(
+                    restaurant.Id, 
+                    restaurant.PartnerId, 
+                    restaurant.Name, 
+                    restaurant.Address, 
+                    restaurant.Longitude, 
+                    restaurant.Latitude, 
+                    restaurant.Description, 
+                    restaurant.AvgPrice, 
+                    restaurant.Rating, 
+                    restaurant.Status, 
+                    restaurant.CreatedAt, 
+                    imageDtos, // Sử dụng danh sách ảnh đã map đúng
+                    new List<ReviewDto>(),
+                    0
+                ) : null;
+                // === FIX END ===
+
                 return new FavoriteDto(f.Id, f.UserId, f.RestaurantId, f.CreatedAt, restaurantDto);
             }).ToList();
 
@@ -167,5 +188,3 @@ public class FavoritesController : ControllerBase
         }
     }
 }
-
-public record FavoriteDto(int Id, int UserId, int RestaurantId, DateTime CreatedAt, Mumii.Shared.Common.DTOs.RestaurantDto? Restaurant);
