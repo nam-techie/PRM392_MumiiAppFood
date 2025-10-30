@@ -8,7 +8,7 @@
         "ASPNETCORE_ENVIRONMENT": "Development",
         "MongoDB__ConnectionString": "mongodb+srv://mumii_auth:mumii_auth@mumii-auth.e7tvtg3.mongodb.net/?retryWrites=true&w=majority&appName=mumii-auth",
         "MongoDB__DatabaseName": "mumii_auth",
-        "JWT_SECRET_KEY": "<REPLACE_WITH_MIN_32_CHAR_SECRET>",
+        "JWT_SECRET_KEY": "p2kQbYz7Jr9fT4wM1nV8sD6xC3aL5uH0rZ2eX9tQ1bN7mK8p",
         "Jwt__Issuer": "Mumii",
         "Jwt__Audience": "Mumii.Client",
         "Jwt__ExpiryHours": "24",

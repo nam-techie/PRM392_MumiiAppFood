@@ -575,7 +575,7 @@ public class SomeService : IDisposable
 #### 1. JWT Security (theo chuẩn bithub.vn)
 ```csharp
 // ✅ Good: Strong secret key (>= 256 bits)
-JWT_SECRET_KEY=ef1e6ea93646f5566ff573eb99e72792...
+JWT_SECRET_KEY=p2kQbYz7Jr9fT4wM1nV8sD6xC3aL5uH0rZ2eX9tQ1bN7mK8p...
 
 // ✅ Good: Include standard claims
 var claims = new List<Claim>
