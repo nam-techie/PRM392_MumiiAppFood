@@ -27,8 +27,9 @@ public static class DependencyInjection
         services.AddScoped<IPostRepository, PostRepository>();
         services.AddScoped<IMoodRepository, MoodRepository>();
         services.AddScoped<IPostMoodRepository, PostMoodRepository>();
-        services.AddHttpClient<IUserRepository, UserRepository>();
-        services.AddHttpClient<IRestaurantRepository, RestaurantRepository>();
+        // These repositories internally use IHttpClientFactory; register as scoped, not typed HttpClient
+        services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IRestaurantRepository, RestaurantRepository>();
 
         return services;
     }
