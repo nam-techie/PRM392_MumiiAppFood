@@ -27,6 +27,8 @@ public static class DependencyInjection
         services.AddScoped<IPostRepository, PostRepository>();
         services.AddScoped<IMoodRepository, MoodRepository>();
         services.AddScoped<IPostMoodRepository, PostMoodRepository>();
+        services.AddHttpClient<IUserRepository, UserRepository>();
+        services.AddHttpClient<IRestaurantRepository, RestaurantRepository>();
 
         return services;
     }
