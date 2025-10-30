@@ -10,7 +10,25 @@ public record MoodDto(int Id, string Name, string? Description, DateTime Created
 /// <summary>
 /// DTO cho bài đăng theo schema mới
 /// </summary>
-public record PostDto(int Id, int PartnerId, int? RestaurantId, string Title, string Content, string? ImageUrl, DateTime CreatedAt, List<MoodDto> Moods, RestaurantDto? Restaurant, UserDto? Partner);
+/// <summary>
+/// DTO cho bài đăng theo schema mới
+/// </summary>
+public record PostDto(
+    int Id,
+    int PartnerId,
+    int? RestaurantId,
+    string Title,
+    string Content,
+    string? ImageUrl,
+
+    // THÊM STATUS VÀO ĐÂY (hoặc một vị trí hợp lý khác)
+    string Status,
+
+    DateTime CreatedAt,
+    List<MoodDto> Moods,
+    RestaurantDto? Restaurant,
+    UserDto? Partner
+);
 
 /// <summary>
 /// DTO cho tạo bài đăng mới

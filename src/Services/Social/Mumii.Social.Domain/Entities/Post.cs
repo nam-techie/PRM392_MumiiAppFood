@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Mumii.Social.Domain.Entities;
 
@@ -13,7 +14,7 @@ public class Post
     public string? ImageUrl { get; private set; }
     public DateTime CreatedAt { get; private set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; private set; } = DateTime.UtcNow;
-    public string Status { get; private set; } = string.Empty; // THÊM THUỘC TÍNH NÀY
+    public string Status { get; private set; } = string.Empty;
 
     public List<PostMood> PostMoods { get; private set; } = new();
 
@@ -32,7 +33,7 @@ public class Post
             Content = content.Trim(),
             ImageUrl = imageUrl?.Trim(),
             RestaurantId = restaurantId,
-            Status = "Pending", // MẶC ĐỊNH LÀ PENDING
+            Status = "Pending",
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
@@ -52,7 +53,6 @@ public class Post
 
     public void SetImage(string? imageUrl)
     {
-        // Có thể thêm validation URL ở đây
         ImageUrl = imageUrl?.Trim();
         UpdatedAt = DateTime.UtcNow;
     }
@@ -71,5 +71,24 @@ public class Post
             throw new InvalidOperationException("Chỉ có thể từ chối bài đăng đang ở trạng thái chờ.");
         Status = "Declined";
         UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void AddMood(int moodId)
+    {
+        if (!PostMoods.Any(pm => pm.MoodId == moodId))
+        {
+            PostMoods.Add(PostMood.Create(this.Id, moodId));
+            UpdatedAt = DateTime.UtcNow;
+        }
+    }
+
+    public void RemoveMood(int moodId)
+    {
+        var postMoodToRemove = PostMoods.FirstOrDefault(pm => pm.MoodId == moodId);
+        if (postMoodToRemove != null)
+        {
+            PostMoods.Remove(postMoodToRemove);
+            UpdatedAt = DateTime.UtcNow;
+        }
     }
 }
