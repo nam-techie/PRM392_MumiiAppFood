@@ -38,10 +38,14 @@ public class FavoritesController : ControllerBase
 
     private int GetCurrentUserId()
     {
-        var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        // === FIX START ===
+        // Thay đổi để lấy claim "user_id" một cách tường minh, an toàn hơn.
+        var userIdStr = User.FindFirstValue("user_id"); 
+        // === FIX END ===
+
         if (string.IsNullOrEmpty(userIdStr) || !int.TryParse(userIdStr, out var userId))
         {
-            throw new UnauthorizedAccessException("Token không hợp lệ.");
+            throw new UnauthorizedAccessException("Không thể xác thực người dùng từ token.");
         }
         return userId;
     }
@@ -62,19 +66,24 @@ public class FavoritesController : ControllerBase
                 return Ok(ApiResponse<List<FavoriteDto>>.SuccessResult(new List<FavoriteDto>()));
             }
 
-            // Lấy thông tin chi tiết của các nhà hàng đã yêu thích
             var restaurantIds = favorites.Select(f => f.RestaurantId);
-            var restaurants = (await _restaurantRepository.GetByIdsAsync(restaurantIds)).ToDictionary(r => r.Id);
+            
+            var restaurantList = await _restaurantRepository.GetByIdsAsync(restaurantIds);
+            var restaurants = restaurantList?.ToDictionary(r => r.Id) ?? new Dictionary<int, Restaurant>();
 
             var dtos = favorites.Select(f => 
             {
                 restaurants.TryGetValue(f.RestaurantId, out var restaurant);
-                // Sử dụng MapToDto helper nếu có, hoặc map thủ công
                 var restaurantDto = restaurant != null ? new Mumii.Shared.Common.DTOs.RestaurantDto(restaurant.Id, restaurant.PartnerId, restaurant.Name, restaurant.Address, restaurant.Longitude, restaurant.Latitude, restaurant.Description, restaurant.AvgPrice, restaurant.Rating, restaurant.Status, restaurant.CreatedAt, new List<Mumii.Shared.Common.DTOs.RestaurantImageDto>(), new List<Mumii.Shared.Common.DTOs.ReviewDto>(), 0) : null;
                 return new FavoriteDto(f.Id, f.UserId, f.RestaurantId, f.CreatedAt, restaurantDto);
             }).ToList();
 
             return Ok(ApiResponse<List<FavoriteDto>>.SuccessResult(dtos));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            _logger.LogWarning(ex, "Unauthorized access in GetMyFavorites.");
+            return Unauthorized(ApiResponse.ErrorResult(ex.Message));
         }
         catch (Exception ex)
         {
@@ -93,14 +102,12 @@ public class FavoritesController : ControllerBase
         {
             var userId = GetCurrentUserId();
 
-            // Kiểm tra nhà hàng có tồn tại không
             var restaurantExists = await _restaurantRepository.ExistsAsync(restaurantId);
             if (!restaurantExists)
             {
                 return NotFound(ApiResponse.ErrorResult("Không tìm thấy nhà hàng."));
             }
 
-            // Kiểm tra xem đã yêu thích trước đó chưa
             if (await _favoriteRepository.ExistsAsync(userId, restaurantId))
             {
                 return BadRequest(ApiResponse.ErrorResult("Bạn đã yêu thích nhà hàng này rồi."));
@@ -112,8 +119,13 @@ public class FavoritesController : ControllerBase
             await _favoriteRepository.AddAsync(favorite);
             _logger.LogInformation("User {UserId} favorited restaurant {RestaurantId}", userId, restaurantId);
 
-            var dto = new FavoriteDto(favorite.Id, favorite.UserId, favorite.RestaurantId, favorite.CreatedAt, null); // Không cần trả về restaurant DTO ở đây
+            var dto = new FavoriteDto(favorite.Id, favorite.UserId, favorite.RestaurantId, favorite.CreatedAt, null);
             return Ok(ApiResponse<FavoriteDto>.SuccessResult(dto, "Thêm vào yêu thích thành công."));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            _logger.LogWarning(ex, "Unauthorized access in AddFavorite.");
+            return Unauthorized(ApiResponse.ErrorResult(ex.Message));
         }
         catch (Exception ex)
         {
@@ -142,6 +154,11 @@ public class FavoritesController : ControllerBase
             _logger.LogInformation("User {UserId} unfavorited restaurant {RestaurantId}", userId, restaurantId);
 
             return Ok(ApiResponse.SuccessResult("Đã xóa khỏi danh sách yêu thích."));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            _logger.LogWarning(ex, "Unauthorized access in RemoveFavorite.");
+            return Unauthorized(ApiResponse.ErrorResult(ex.Message));
         }
         catch (Exception ex)
         {
