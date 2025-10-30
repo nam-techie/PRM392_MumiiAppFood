@@ -24,14 +24,6 @@ services:
         - src/Shared/**
         - Mumii.Microservices.sln
         - global.json
-      - key: ReverseProxy__Clusters__auth-cluster__Destinations__auth-service__Address
-        value: https://mumii-auth.onrender.com/
-      - key: ReverseProxy__Clusters__discovery-cluster__Destinations__discovery-service__Address
-        value: https://mumii-discovery.onrender.com/
-      - key: ReverseProxy__Clusters__social-cluster__Destinations__social-service__Address
-        value: https://mumii-social.onrender.com/
-      - key: ReverseProxy__Clusters__ai-cluster__Destinations__ai-service__Address
-        value: https://mumii-ai.onrender.com/
 
   - type: web
     name: mumii-auth
@@ -104,4 +96,3 @@ services:
         - src/Shared/**
         - Mumii.Microservices.sln
         - global.json
-
