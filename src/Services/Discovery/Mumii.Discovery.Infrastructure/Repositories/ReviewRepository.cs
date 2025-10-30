@@ -39,12 +39,16 @@ public class ReviewRepository : IReviewRepository
         return new PagedResult<Review>(items, totalCount, page, pageSize, totalPages);
     }
 
+    public async Task<bool> HasUserReviewedRestaurantAsync(int userId, int restaurantId, CancellationToken cancellationToken = default)
+    {
+        return await _reviews.Find(r => r.UserId == userId && r.RestaurantId == restaurantId).AnyAsync(cancellationToken);
+    }
+
     public async Task UpdateAsync(Review review, CancellationToken cancellationToken = default)
     {
         await _reviews.ReplaceOneAsync(r => r.Id == review.Id, review, cancellationToken: cancellationToken);
     }
 
-    // PHẦN TRIỂN KHAI MỚI
     public async Task<Review> AddAsync(Review review, CancellationToken cancellationToken = default)
     {
         await _reviews.InsertOneAsync(review, cancellationToken: cancellationToken);

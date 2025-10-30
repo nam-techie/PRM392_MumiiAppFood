@@ -195,6 +195,94 @@ public class PartnerPostsController : ControllerBase
         return Ok(ApiResponse<object>.SuccessResult(new { imageUrl = url }, "Tải ảnh lên thành công."));
     }
 
+    /// <summary>
+    /// (Partner) Gán một mood vào bài đăng của mình.
+    /// </summary>
+    [HttpPost("{postId:int}/moods/{moodId:int}")]
+    public async Task<ActionResult<ApiResponse>> AddMoodToPost(int postId, int moodId)
+    {
+        var partnerId = GetCurrentPartnerId();
+        var post = await _postRepository.GetByIdAsync(postId);
+
+        // 1. Kiểm tra quyền sở hữu
+        if (post == null || post.PartnerId != partnerId)
+        {
+            return Forbid();
+        }
+
+        // 2. Kiểm tra xem Mood có tồn tại không
+        var mood = await _moodRepository.GetByIdAsync(moodId);
+        if (mood == null)
+        {
+            return NotFound(ApiResponse.ErrorResult("Không tìm thấy mood này."));
+        }
+
+        // 3. Gọi logic từ entity
+        post.AddMood(moodId);
+
+        // 4. Lưu thay đổi vào DB
+        await _postRepository.UpdateAsync(post);
+        _logger.LogInformation("Partner {PartnerId} added mood {MoodId} to post {PostId}", partnerId, moodId, postId);
+
+        return Ok(ApiResponse.SuccessResult("Gán mood vào bài đăng thành công."));
+    }
+
+    /// <summary>
+    /// (Partner) Gỡ một mood khỏi bài đăng của mình.
+    /// </summary>
+    [HttpDelete("{postId:int}/moods/{moodId:int}")]
+    public async Task<ActionResult<ApiResponse>> RemoveMoodFromPost(int postId, int moodId)
+    {
+        var partnerId = GetCurrentPartnerId();
+        var post = await _postRepository.GetByIdAsync(postId);
+
+        // 1. Kiểm tra quyền sở hữu
+        if (post == null || post.PartnerId != partnerId)
+        {
+            return Forbid();
+        }
+
+        // 2. Gọi logic từ entity
+        post.RemoveMood(moodId);
+
+        // 3. Lưu thay đổi vào DB
+        await _postRepository.UpdateAsync(post);
+        _logger.LogInformation("Partner {PartnerId} removed mood {MoodId} from post {PostId}", partnerId, moodId, postId);
+
+        return Ok(ApiResponse.SuccessResult("Gỡ mood khỏi bài đăng thành công."));
+    }
+
+    /// <summary>
+    /// Partner lấy chi tiết một bài đăng của chính mình theo ID
+    /// </summary>
+    [HttpGet("{id:int}")]
+    public async Task<ActionResult<ApiResponse<PostDto>>> GetMyPostById(int id)
+    {
+        try
+        {
+            var partnerId = GetCurrentPartnerId();
+            var post = await _postRepository.GetByIdAsync(id);
+
+            // 1. Kiểm tra xem bài đăng có tồn tại không
+            // 2. Kiểm tra xem bài đăng này có thuộc sở hữu của Partner đang đăng nhập không
+            if (post == null || post.PartnerId != partnerId)
+            {
+                return NotFound(ApiResponse.ErrorResult("Không tìm thấy bài đăng."));
+            }
+
+            // Tái sử dụng phương thức map hiệu quả để lấy đầy đủ thông tin
+            var dtos = await MapPostsToDtosAsync(new List<Post> { post });
+
+            return Ok(ApiResponse<PostDto>.SuccessResult(dtos.First()));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting post {PostId} for partner {PartnerId}", id, GetCurrentPartnerId());
+            return StatusCode(500, ApiResponse.ErrorResult("Lỗi hệ thống khi tải chi tiết bài đăng."));
+        }
+    }
+
+
     // Tái sử dụng phương thức Map hiệu quả từ AdminPostsController
     private async Task<List<PostDto>> MapPostsToDtosAsync(IEnumerable<Post> posts)
     {
@@ -258,10 +346,12 @@ public class PartnerPostsController : ControllerBase
                 .ToList();
 
             return new PostDto(
-                p.Id, p.PartnerId, p.RestaurantId, p.Title, p.Content, p.ImageUrl, p.CreatedAt,
+                p.Id, p.PartnerId, p.RestaurantId, p.Title, p.Content, p.ImageUrl,
+                p.Status, // <<< THÊM p.Status VÀO ĐÂY
+                p.CreatedAt,
                 postMoods!,
-                restaurantDto, // Giờ đã là kiểu RestaurantDto?
-                partnerDto   // Sửa PostDto để chấp nhận UserDto?
+                restaurantDto,
+                partnerDto
             );
         }).ToList();
 

@@ -19,6 +19,7 @@ namespace Mumii.Social.Api.Controllers;
 
 [ApiController]
 [Route("api/posts")]
+[Authorize]
 public class PostsController : ControllerBase
 {
     private readonly IPostRepository _postRepository;
@@ -267,10 +268,12 @@ public class PostsController : ControllerBase
                 .ToList();
 
             return new PostDto(
-                p.Id, p.PartnerId, p.RestaurantId, p.Title, p.Content, p.ImageUrl, p.CreatedAt,
+                p.Id, p.PartnerId, p.RestaurantId, p.Title, p.Content, p.ImageUrl,
+                p.Status, // <<< THÊM p.Status VÀO ĐÂY
+                p.CreatedAt,
                 postMoods!,
-                restaurantDto, // Giờ đã là kiểu RestaurantDto?
-                partnerDto   // Sửa PostDto để chấp nhận UserDto?
+                restaurantDto,
+                partnerDto
             );
         }).ToList();
 
