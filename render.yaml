@@ -106,6 +106,10 @@ services:
         value: "mongodb+srv://mumii_ai:nam180259@mumii-ai.qxttywo.mongodb.net/?appName=mumii-ai"
       - key: MongoDB__DatabaseName
         value: "mumii_ai"
+      - key: SWAGGER_ENABLED
+        value: "true"
+      - key: GEMINI_API_KEY
+        value: "AIzaSyA7abUMd1h2CD39Xk5BEwdrS8AEBW_YJYo"
     buildFilter:
       paths:
         - src/Services/AI/**
