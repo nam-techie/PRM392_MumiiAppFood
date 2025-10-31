@@ -1,4 +1,5 @@
 using MongoDB.Driver;
+using MongoDB.Bson;
 using Mumii.Auth.Domain.Entities;
 using Mumii.Auth.Domain.Interfaces;
 using Mumii.Shared.Common.DTOs;
@@ -80,7 +81,9 @@ public class UserRepository : IUserRepository
 
     public async Task<PagedResult<User>> GetPagedAsync(int page, int pageSize, CancellationToken cancellationToken = default)
     {
-        var find = _users.Find(_ => true); // Lấy tất cả user
+        // Chỉ lấy các document có _id kiểu Int32 để tránh lỗi deserialization khi tồn tại dữ liệu cũ dạng ObjectId
+        var idIsInt32Filter = new BsonDocument("_id", new BsonDocument("$type", 16));
+        var find = _users.Find(idIsInt32Filter);
 
         var totalCount = (int)await find.CountDocumentsAsync(cancellationToken);
 
