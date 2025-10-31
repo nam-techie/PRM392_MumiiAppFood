@@ -37,7 +37,8 @@ namespace Mumii.Social.Infrastructure.Repositories
                 {
                     var resp = await _httpClient.GetAsync($"/api/restaurants/{id}", cancellationToken);
                     if (!resp.IsSuccessStatusCode) return null;
-                    return await resp.Content.ReadFromJsonAsync<ApiResponse<RestaurantDto>>(cancellationToken: cancellationToken)?.ContinueWith(t => t.Result?.Data, cancellationToken).Result;
+                    var wrapper = await resp.Content.ReadFromJsonAsync<ApiResponse<RestaurantDto>>(cancellationToken: cancellationToken);
+                    return wrapper?.Data;
                 }
                 catch
                 {
