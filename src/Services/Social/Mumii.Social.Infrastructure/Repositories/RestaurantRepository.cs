@@ -15,19 +15,18 @@ namespace Mumii.Social.Infrastructure.Repositories
     public class RestaurantRepository : IRestaurantRepository
     {
         private readonly HttpClient _httpClient;
-        private readonly string _gatewayBaseUrl;
 
         public RestaurantRepository(IHttpClientFactory httpClientFactory, IConfiguration config)
         {
-            _httpClient = httpClientFactory.CreateClient();
-            _gatewayBaseUrl = config["ApiGateway:BaseUrl"] ?? "http://localhost:9000";
+            // Dùng named client đã cấu hình BaseAddress tại Program.cs
+            _httpClient = httpClientFactory.CreateClient("gateway");
         }
 
         public async Task<List<RestaurantDto>> GetByIdsAsync(IEnumerable<int> restaurantIds, CancellationToken cancellationToken = default)
         {
             // API giả định: /discovery/restaurants/ids?ids=1,2,3
             var idsStr = string.Join(",", restaurantIds);
-            var url = $"{_gatewayBaseUrl}/api/discovery/restaurants/ids?ids={idsStr}";
+            var url = $"/api/discovery/restaurants/ids?ids={idsStr}";
             var response = await _httpClient.GetAsync(url, cancellationToken);
             response.EnsureSuccessStatusCode();
             var data = await response.Content.ReadFromJsonAsync<List<RestaurantDto>>(cancellationToken: cancellationToken);
@@ -36,7 +35,7 @@ namespace Mumii.Social.Infrastructure.Repositories
 
         public async Task<RestaurantDto?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
         {
-            var url = $"{_gatewayBaseUrl}/api/discovery/restaurants/{id}";
+            var url = $"/api/discovery/restaurants/{id}";
             var response = await _httpClient.GetAsync(url, cancellationToken);
             if (!response.IsSuccessStatusCode) return null;
             return await response.Content.ReadFromJsonAsync<RestaurantDto>(cancellationToken: cancellationToken);

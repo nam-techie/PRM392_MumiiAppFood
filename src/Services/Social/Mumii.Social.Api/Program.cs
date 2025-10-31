@@ -32,6 +32,17 @@ builder.Host.UseSerilog((context, configuration) =>
 // Add services to the container
 builder.Services.AddControllers();
 
+// HttpClient factory cho các repository sử dụng IHttpClientFactory
+builder.Services.AddHttpClient();
+
+// Named HttpClient cho API Gateway (dùng cho User/RestaurantRepository)
+builder.Services.AddHttpClient("gateway", client =>
+{
+    var baseUrl = builder.Configuration["ApiGateway:BaseUrl"] ?? "http://localhost:9000";
+    client.BaseAddress = new Uri(baseUrl);
+    client.Timeout = TimeSpan.FromSeconds(15);
+});
+
 // Register IMongoIdGenerator
 builder.Services.AddScoped<IMongoIdGenerator, MongoIdGenerator>();
 

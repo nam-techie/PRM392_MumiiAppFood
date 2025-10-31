@@ -15,19 +15,18 @@ namespace Mumii.Social.Infrastructure.Repositories
     public class UserRepository : IUserRepository
     {
         private readonly HttpClient _httpClient;
-        private readonly string _gatewayBaseUrl;
 
         public UserRepository(IHttpClientFactory httpClientFactory, IConfiguration config)
         {
-            _httpClient = httpClientFactory.CreateClient();
-            _gatewayBaseUrl = config["ApiGateway:BaseUrl"] ?? "http://localhost:9000";
+            // Dùng named client đã cấu hình BaseAddress tại Program.cs
+            _httpClient = httpClientFactory.CreateClient("gateway");
         }
 
         public async Task<List<UserDto>> GetByIdsAsync(IEnumerable<int> userIds, CancellationToken cancellationToken = default)
         {
             // API giả định: /auth/users/ids?ids=1,2,3
             var idsStr = string.Join(",", userIds);
-            var url = $"{_gatewayBaseUrl}/api/auth/users/ids?ids={idsStr}";
+            var url = $"/api/auth/users/ids?ids={idsStr}";
             var response = await _httpClient.GetAsync(url, cancellationToken);
             response.EnsureSuccessStatusCode();
             var data = await response.Content.ReadFromJsonAsync<List<UserDto>>(cancellationToken: cancellationToken);
@@ -36,7 +35,7 @@ namespace Mumii.Social.Infrastructure.Repositories
 
         public async Task<UserDto?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
         {
-            var url = $"{_gatewayBaseUrl}/api/auth/users/{id}";
+            var url = $"/api/auth/users/{id}";
             var response = await _httpClient.GetAsync(url, cancellationToken);
             if (!response.IsSuccessStatusCode) return null;
             return await response.Content.ReadFromJsonAsync<UserDto>(cancellationToken: cancellationToken);
