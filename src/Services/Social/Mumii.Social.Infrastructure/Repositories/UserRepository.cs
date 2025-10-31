@@ -28,7 +28,11 @@ namespace Mumii.Social.Infrastructure.Repositories
             var idsStr = string.Join(",", userIds);
             var url = $"/api/auth/users/ids?ids={idsStr}";
             var response = await _httpClient.GetAsync(url, cancellationToken);
-            response.EnsureSuccessStatusCode();
+            if (!response.IsSuccessStatusCode)
+            {
+                // Không làm fail toàn bộ newsfeed nếu service khác 404/401
+                return new List<UserDto>();
+            }
             var data = await response.Content.ReadFromJsonAsync<List<UserDto>>(cancellationToken: cancellationToken);
             return data ?? new List<UserDto>();
         }
