@@ -77,31 +77,8 @@ public class PostsController : ControllerBase
     }
 
     /// <summary>
-    /// (Public) Lấy chi tiết một bài đăng
-    /// </summary>
-    [HttpGet("{id:int}")]
-    public async Task<ActionResult<ApiResponse<PostDto>>> GetPostById(int id)
-    {
-        try
-        {
-            var post = await _postRepository.GetByIdAsync(id);
-            // Chỉ trả về nếu post tồn tại VÀ đã được duyệt
-            if (post == null || post.Status != "Approved")
-            {
-                return NotFound(ApiResponse.ErrorResult("Không tìm thấy bài đăng."));
-            }
-            var dtos = await MapPostsToDtosAsync(new List<Post> { post });
-            return Ok(ApiResponse<PostDto>.SuccessResult(dtos.First()));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting post by id {PostId}", id);
-            return StatusCode(500, ApiResponse.ErrorResult("Lỗi hệ thống khi tải chi tiết bài đăng."));
-        }
-    }
-
-    /// <summary>
     /// (Public) Lấy danh sách bình luận của một bài đăng
+    /// Đặt route này trước route {id:int} để tránh route conflict
     /// </summary>
     [HttpGet("{postId:int}/comments")]
     public async Task<ActionResult<ApiResponse<List<CommentDto>>>> GetCommentsForPost(int postId)
@@ -131,6 +108,30 @@ public class PostsController : ControllerBase
         {
             _logger.LogError(ex, "Error getting comments for post {PostId}", postId);
             return StatusCode(500, ApiResponse.ErrorResult("Lỗi hệ thống khi tải bình luận."));
+        }
+    }
+
+    /// <summary>
+    /// (Public) Lấy chi tiết một bài đăng
+    /// </summary>
+    [HttpGet("{id:int}")]
+    public async Task<ActionResult<ApiResponse<PostDto>>> GetPostById(int id)
+    {
+        try
+        {
+            var post = await _postRepository.GetByIdAsync(id);
+            // Chỉ trả về nếu post tồn tại VÀ đã được duyệt
+            if (post == null || post.Status != "Approved")
+            {
+                return NotFound(ApiResponse.ErrorResult("Không tìm thấy bài đăng."));
+            }
+            var dtos = await MapPostsToDtosAsync(new List<Post> { post });
+            return Ok(ApiResponse<PostDto>.SuccessResult(dtos.First()));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting post by id {PostId}", id);
+            return StatusCode(500, ApiResponse.ErrorResult("Lỗi hệ thống khi tải chi tiết bài đăng."));
         }
     }
 
