@@ -84,23 +84,30 @@ public class GeminiService : IGeminiService
 		return sb.ToString()[..16]; // short digest for logs
 	}
 
-    public async Task<string> ChatAboutFoodAsync(string userMessage, CancellationToken cancellationToken = default)
+    public async Task<JsonElement> ChatAboutFoodAsync(string userMessage, CancellationToken cancellationToken = default)
     {
         try
         {
 			var prompt = $@"Bạn là một AI chuyên gia ẩm thực Việt Nam. 
-Trả lời thân thiện, chính xác câu hỏi: {userMessage}";
+Trả lời thân thiện, chính xác câu hỏi: {userMessage}
+
+Yêu cầu trả về dưới dạng JSON với cấu trúc:
+{{
+  ""answer"": ""Câu trả lời chi tiết"",
+  ""relatedTopics"": [""chủ đề liên quan 1"", ""chủ đề liên quan 2""],
+  ""language"": ""vi""
+}}";
 			var json = await GenerateContentAsync(prompt, cancellationToken);
-			return ExtractText(json) ?? "Xin lỗi, tôi không thể trả lời lúc này.";
+			return ExtractJson(json);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error calling Gemini");
-            return "Xin lỗi, đã có lỗi xảy ra.";
+            return CreateErrorJsonElement("Xin lỗi, đã có lỗi xảy ra khi chat với AI.");
         }
     }
 
-    public async Task<string> SuggestFoodByMoodAsync(string mood, string? location = null, CancellationToken cancellationToken = default)
+    public async Task<JsonElement> SuggestFoodByMoodAsync(string mood, string? location = null, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -109,43 +116,33 @@ Trả lời thân thiện, chính xác câu hỏi: {userMessage}";
 			var prompt = $@"Bạn là AI ẩm thực Việt Nam. Dựa trên tâm trạng ""{mood}""{locationText}, gợi ý 3–5 món ăn.
 - Trả lời bằng tiếng Việt
 - Nêu lý do phù hợp với tâm trạng
-- Nếu có địa điểm, ưu tiên món địa phương";
+- Nếu có địa điểm, ưu tiên món địa phương
+
+Yêu cầu trả về dưới dạng JSON với cấu trúc:
+{{
+  ""mood"": ""{mood}"",
+  ""location"": ""{location ?? "không xác định"}"",
+  ""suggestions"": [
+    {{
+      ""foodName"": ""Tên món"",
+      ""description"": ""Mô tả ngắn"",
+      ""reason"": ""Lý do phù hợp với tâm trạng"",
+      ""priceRange"": ""Khoảng giá""
+    }}
+  ]
+}}";
 
 			var json = await GenerateContentAsync(prompt, cancellationToken);
-			return ExtractText(json) ?? "Xin lỗi, tôi không thể gợi ý lúc này.";
+			return ExtractJson(json);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "SuggestFoodByMoodAsync error");
-            return "Xin lỗi, đã có lỗi xảy ra.";
+            return CreateErrorJsonElement("Xin lỗi, đã có lỗi xảy ra khi gợi ý món ăn.");
         }
     }
 
-    public async Task<string> AnalyzeFoodImageAsync(string imageUrl, CancellationToken cancellationToken = default)
-    {
-        try
-        {
-			var prompt = $@"Hãy phân tích nội dung của hình ảnh đồ ăn tại URL sau: {imageUrl}
-
-Yêu cầu trả lời bằng tiếng Việt theo các mục:
-1. Tên món (nếu nhận diện)
-2. Loại món
-3. Thành phần chính
-4. Cách chế biến (suy đoán)
-5. Độ hấp dẫn/chất lượng
-6. Gợi ý món tương tự.";
-
-			var json = await GenerateContentAsync(prompt, cancellationToken);
-			return ExtractText(json) ?? "Xin lỗi, tôi không thể phân tích hình ảnh này.";
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "AnalyzeFoodImageAsync error");
-            return "Xin lỗi, đã có lỗi xảy ra.";
-        }
-    }
-
-    public async Task<string> SuggestRestaurantsAsync(string preferences, string? location = null, CancellationToken cancellationToken = default)
+    public async Task<JsonElement> SuggestRestaurantsAsync(string preferences, string? location = null, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -154,15 +151,30 @@ Yêu cầu trả lời bằng tiếng Việt theo các mục:
 			var prompt = $@"Bạn là AI ẩm thực Việt Nam. Dựa trên sở thích và yêu cầu sau{locationText}, gợi ý 3–5 nhà hàng phù hợp.
 Sở thích/Yêu cầu: {preferences}
 - Trả lời bằng tiếng Việt
-- Nêu lý do chọn nhà hàng, món nổi bật, khoảng giá";
+- Nêu lý do chọn nhà hàng, món nổi bật, khoảng giá
+
+Yêu cầu trả về dưới dạng JSON với cấu trúc:
+{{
+  ""preferences"": ""{preferences}"",
+  ""location"": ""{location ?? "không xác định"}"",
+  ""restaurants"": [
+    {{
+      ""name"": ""Tên nhà hàng"",
+      ""reason"": ""Lý do phù hợp"",
+      ""signatureDishes"": [""Món 1"", ""Món 2""],
+      ""priceRange"": ""Khoảng giá"",
+      ""address"": ""Địa chỉ (nếu có)""
+    }}
+  ]
+}}";
 
 			var json = await GenerateContentAsync(prompt, cancellationToken);
-			return ExtractText(json) ?? "Xin lỗi, tôi không thể gợi ý nhà hàng lúc này.";
+			return ExtractJson(json);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "SuggestRestaurantsAsync error");
-            return "Xin lỗi, đã có lỗi xảy ra.";
+            return CreateErrorJsonElement("Xin lỗi, đã có lỗi xảy ra khi gợi ý nhà hàng.");
         }
     }
 
@@ -181,6 +193,10 @@ Sở thích/Yêu cầu: {preferences}
 						new { text = prompt }
 					}
 				}
+			},
+			generationConfig = new
+			{
+				responseMimeType = "application/json"
 			}
 		};
 
@@ -192,12 +208,13 @@ Sở thích/Yêu cầu: {preferences}
 		if (!response.IsSuccessStatusCode)
 		{
 			_logger.LogError("Gemini REST call failed: {Status} | {Body}", (int)response.StatusCode, responseText);
+			throw new HttpRequestException($"Gemini API call failed with status {response.StatusCode}");
 		}
 
 		return responseText;
 	}
 
-	private static string? ExtractText(string json)
+	private static JsonElement ExtractJson(string json)
 	{
 		try
 		{
@@ -211,15 +228,28 @@ Sở thích/Yêu cầu: {preferences}
 					var part = parts[0];
 					if (part.TryGetProperty("text", out var text))
 					{
-						return text.GetString();
+						// Parse the text content as JSON since we requested JSON response
+						var textValue = text.GetString();
+						if (!string.IsNullOrWhiteSpace(textValue))
+						{
+							using var jsonDoc = JsonDocument.Parse(textValue);
+							return jsonDoc.RootElement.Clone();
+						}
 					}
 				}
 			}
 		}
 		catch
 		{
-			// ignore parse errors; caller will fallback to default message
+			// Parse error - return error JSON
 		}
-		return null;
+		return CreateErrorJsonElement("Không thể parse response từ Gemini API");
+	}
+
+	private static JsonElement CreateErrorJsonElement(string message)
+	{
+		var errorJson = $"{{\"error\": \"{message}\"}}";
+		using var doc = JsonDocument.Parse(errorJson);
+		return doc.RootElement.Clone();
 	}
 }
