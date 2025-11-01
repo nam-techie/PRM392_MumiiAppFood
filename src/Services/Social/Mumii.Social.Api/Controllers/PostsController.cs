@@ -78,9 +78,9 @@ public class PostsController : ControllerBase
 
     /// <summary>
     /// (Public) Lấy danh sách bình luận của một bài đăng
-    /// Đặt route này trước route {id:int} để tránh route conflict
     /// </summary>
     [HttpGet("{postId:int}/comments")]
+    [Authorize] // Cần token để xem comments
     public async Task<ActionResult<ApiResponse<List<CommentDto>>>> GetCommentsForPost(int postId)
     {
         try
