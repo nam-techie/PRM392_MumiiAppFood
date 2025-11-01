@@ -27,7 +27,8 @@ public record PostDto(
     DateTime CreatedAt,
     List<MoodDto> Moods,
     RestaurantDto? Restaurant,
-    UserDto? Partner
+    UserDto? Partner,
+    List<CommentDto>? Comments
 );
 
 /// <summary>

@@ -214,6 +214,7 @@ public class PostsController : ControllerBase
 
         // 1. Thu thập tất cả các ID cần thiết một cách hiệu quả
         var postList = posts.ToList(); // Chuyển sang List để tránh lặp lại nhiều lần
+        var postIds = postList.Select(p => p.Id).Distinct().ToList();
         var partnerIds = postList.Select(p => p.PartnerId).Distinct();
         var restaurantIds = postList.Select(p => p.RestaurantId).Where(id => id.HasValue).Select(id => id!.Value).Distinct();
         var moodIds = postList.SelectMany(p => p.PostMoods).Select(pm => pm.MoodId).Distinct();
@@ -222,12 +223,26 @@ public class PostsController : ControllerBase
         var partnersTask = _userRepository.GetByIdsAsync(partnerIds);
         var restaurantsTask = _restaurantRepository.GetByIdsAsync(restaurantIds);
         var moodsTask = _moodRepository.GetByIdsAsync(moodIds);
+        
+        // Load comments cho tất cả posts song song
+        var commentsTasks = postIds.Select(postId => _commentRepository.GetByPostIdAsync(postId));
+        var allCommentsTask = Task.WhenAll(commentsTasks);
 
-        await Task.WhenAll(partnersTask, restaurantsTask, moodsTask);
+        await Task.WhenAll(partnersTask, restaurantsTask, moodsTask, allCommentsTask);
 
         var partners = partnersTask.Result.ToDictionary(u => u.Id);
         var restaurants = restaurantsTask.Result.ToDictionary(r => r.Id);
         var moods = moodsTask.Result.ToDictionary(m => m.Id);
+        
+        // Thu thập tất cả comments và group theo PostId
+        var allComments = allCommentsTask.Result.SelectMany(c => c).ToList();
+        var commentsByPostId = allComments.GroupBy(c => c.PostId).ToDictionary(g => g.Key, g => g.ToList());
+        
+        // Thu thập tất cả userIds từ comments và load users
+        var commentUserIds = allComments.Select(c => c.UserId).Distinct().ToList();
+        var commentUsers = commentUserIds.Any()
+            ? (await _userRepository.GetByIdsAsync(commentUserIds)).ToDictionary(u => u.Id)
+            : new Dictionary<int, UserDto>();
 
         // 3. Map sang DTO
         var dtos = postList.Select(p =>
@@ -266,13 +281,26 @@ public class PostsController : ControllerBase
                 .Where(m => m != null)
                 .ToList();
 
+            // Map Comments
+            var postComments = commentsByPostId.TryGetValue(p.Id, out var comments) && comments != null
+                ? comments.Select(c =>
+                {
+                    commentUsers.TryGetValue(c.UserId, out var user);
+                    var userDto = user != null
+                        ? new UserDto(user.Id, user.Email, user.Fullname, user.Role, user.IsActive, user.LoginMethod, user.CreatedAt, null)
+                        : null;
+                    return new CommentDto(c.Id, c.PostId, c.UserId, c.Content, c.CreatedAt, userDto);
+                }).ToList()
+                : new List<CommentDto>();
+
             return new PostDto(
                 p.Id, p.PartnerId, p.RestaurantId, p.Title, p.Content, p.ImageUrl,
                 p.Status, // <<< THÊM p.Status VÀO ĐÂY
                 p.CreatedAt,
                 postMoods!,
                 restaurantDto,
-                partnerDto
+                partnerDto,
+                postComments
             );
         }).ToList();
 
