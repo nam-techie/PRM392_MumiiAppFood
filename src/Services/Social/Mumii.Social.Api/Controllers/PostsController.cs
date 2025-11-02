@@ -50,7 +50,7 @@ public class PostsController : ControllerBase
     private bool TryGetCurrentUserId(out int userId)
     {
         userId = 0;
-        var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var userIdStr = User.FindFirstValue("user_id");
         return !string.IsNullOrEmpty(userIdStr) && int.TryParse(userIdStr, out userId);
     }
 
