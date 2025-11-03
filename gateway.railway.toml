@@ -1,0 +1,12 @@
+[build]
+builder = "dockerfile"
+
+[docker]
+dockerfilePath = "src/ApiGateway/Dockerfile"
+context = "."
+
+[variables]
+ASPNETCORE_URLS = "http://0.0.0.0:8080"
+PORT = "8080"
+
+

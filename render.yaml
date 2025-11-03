@@ -1,0 +1,118 @@
+services:
+  - type: web
+    name: mumii-gateway
+    env: docker
+    rootDir: .
+    dockerfilePath: src/ApiGateway/Dockerfile
+    plan: free
+    autoDeploy: true
+    healthCheckPath: /health
+    envVars:
+      - key: ASPNETCORE_URLS
+        value: http://0.0.0.0:${PORT}
+      - key: ReverseProxy__Clusters__auth-cluster__Destinations__auth-service__Address
+        value: https://mumii-auth.onrender.com/
+      - key: ReverseProxy__Clusters__discovery-cluster__Destinations__discovery-service__Address
+        value: https://mumii-discovery.onrender.com/
+      - key: ReverseProxy__Clusters__social-cluster__Destinations__social-service__Address
+        value: https://mumii-social.onrender.com/
+      - key: ReverseProxy__Clusters__ai-cluster__Destinations__ai-service__Address
+        value: https://mumii-ai.onrender.com/
+    buildFilter:
+      paths:
+        - src/ApiGateway/**
+        - src/Shared/**
+        - Mumii.Microservices.sln
+        - global.json
+
+  - type: web
+    name: mumii-auth
+    env: docker
+    rootDir: .
+    dockerfilePath: src/Services/Auth/Mumii.Auth.Api/Dockerfile
+    plan: free
+    autoDeploy: true
+    healthCheckPath: /health
+    envVars:
+      - key: ASPNETCORE_HTTP_PORTS
+        value: "8080"
+      - key: MongoDB__ConnectionString
+        value: "mongodb+srv://mumii_auth:nam180259@mumii-auth.e7tvtg3.mongodb.net/?appName=mumii-auth"
+      - key: MongoDB__DatabaseName
+        value: "mumii_auth"
+    buildFilter:
+      paths:
+        - src/Services/Auth/**
+        - src/Shared/**
+        - Mumii.Microservices.sln
+        - global.json
+
+  - type: web
+    name: mumii-discovery
+    env: docker
+    rootDir: .
+    dockerfilePath: src/Services/Discovery/Mumii.Discovery.Api/Dockerfile
+    plan: free
+    autoDeploy: true
+    healthCheckPath: /health
+    envVars:
+      - key: ASPNETCORE_HTTP_PORTS
+        value: "8080"
+      - key: MongoDB__ConnectionString
+        value: "mongodb+srv://mumii_discovery:nam180259@mumii-discovery.ik6c7st.mongodb.net/?appName=mumii-discovery"
+      - key: MongoDB__DatabaseName
+        value: "mumii_discovery"
+    buildFilter:
+      paths:
+        - src/Services/Discovery/**
+        - src/Shared/**
+        - Mumii.Microservices.sln
+        - global.json
+
+  - type: web
+    name: mumii-social
+    env: docker
+    rootDir: .
+    dockerfilePath: src/Services/Social/Mumii.Social.Api/Dockerfile
+    plan: free
+    autoDeploy: true
+    healthCheckPath: /health
+    envVars:
+      - key: ASPNETCORE_HTTP_PORTS
+        value: "8080"
+      - key: MongoDB__ConnectionString
+        value: "mongodb+srv://mumii_social:nam180259@mumii-social.jd8nd6f.mongodb.net/?appName=mumii-social"
+      - key: MongoDB__DatabaseName
+        value: "mumii_social"
+    buildFilter:
+      paths:
+        - src/Services/Social/**
+        - src/Shared/**
+        - Mumii.Microservices.sln
+        - global.json
+
+  - type: web
+    name: mumii-ai
+    env: docker
+    rootDir: .
+    dockerfilePath: src/Services/AI/Mumii.AI.Api/Dockerfile
+    plan: free
+    autoDeploy: true
+    healthCheckPath: /health
+    envVars:
+      - key: ASPNETCORE_HTTP_PORTS
+        value: "8080"
+      - key: MongoDB__ConnectionString
+        value: "mongodb+srv://mumii_ai:nam180259@mumii-ai.qxttywo.mongodb.net/?appName=mumii-ai"
+      - key: MongoDB__DatabaseName
+        value: "mumii_ai"
+      - key: SWAGGER_ENABLED
+        value: "true"
+      - key: GEMINI_API_KEY
+        value: "AIzaSyA7abUMd1h2CD39Xk5BEwdrS8AEBW_YJYo"
+    buildFilter:
+      paths:
+        - src/Services/AI/**
+        - src/Shared/**
+        - Mumii.Microservices.sln
+        - global.json

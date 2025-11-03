@@ -1,0 +1,13 @@
+[build]
+builder = "dockerfile"
+
+[docker]
+dockerfilePath = "src/Services/Auth/Mumii.Auth.Api/Dockerfile"
+context = "."
+
+[variables]
+ASPNETCORE_URLS = "http://0.0.0.0:8081"
+PORT = "8081"
+SWAGGER_ENABLED = "true"
+
+

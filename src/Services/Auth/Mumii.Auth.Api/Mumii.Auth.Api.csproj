@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../../Shared/Common/Mumii.Shared.Common.csproj" />
+    <ProjectReference Include="../Mumii.Auth.Domain/Mumii.Auth.Domain.csproj" />
+    <ProjectReference Include="../Mumii.Auth.Infrastructure/Mumii.Auth.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Google.Apis.Auth" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <PackageReference Include="SendGrid" />
+    <PackageReference Include="Swashbuckle.AspNetCore" />
+    <PackageReference Include="MediatR" />
+    <PackageReference Include="FluentValidation.AspNetCore" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+    <PackageReference Include="Serilog.AspNetCore" />
+    <PackageReference Include="Serilog.Sinks.Console" />
+    <PackageReference Include="DotNetEnv" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,20 @@
+{
+  "profiles": {
+    "Mumii.Discovery.Api": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "dotnetRunMessages": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "MongoDB__ConnectionString": "mongodb+srv://mumii_discovery:mumii_discovery@mumii-discovery.ik6c7st.mongodb.net/?retryWrites=true&w=majority&appName=mumii-discovery",
+        "MongoDB__DatabaseName": "mumii_discovery",
+        "JWT_SECRET_KEY": "p2kQbYz7Jr9fT4wM1nV8sD6xC3aL5uH0rZ2eX9tQ1bN7mK8p",
+        "Jwt__Issuer": "Mumii",
+        "Jwt__Audience": "Mumii.Client",
+        "Jwt__ExpiryHours": "24",
+        "SWAGGER_ENABLED": "true"
+      },
+      "applicationUrl": "http://localhost:8082;https://localhost:8442"
+    }
+  }
+}

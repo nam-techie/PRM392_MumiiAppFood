@@ -1,0 +1,13 @@
+[build]
+builder = "dockerfile"
+
+[docker]
+dockerfilePath = "src/Services/Discovery/Mumii.Discovery.Api/Dockerfile"
+context = "."
+
+[variables]
+ASPNETCORE_URLS = "http://0.0.0.0:8082"
+PORT = "8082"
+SWAGGER_ENABLED = "true"
+
+
