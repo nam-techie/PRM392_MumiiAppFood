@@ -1,158 +1,483 @@
-<h1 align="center" id="top">MUMII_MICROSERVICES_BE</h1>
+<h1 align="center" id="top">🍜 MUMII APP FOOD - Microservices Backend</h1>
 
-<p align="center"><em>Building Scalable Food Discovery Platform with Modern Architecture</em></p>
-
-<p align="center">
-  <img src="https://img.shields.io/badge/last%20commit-local-lightgrey?style=flat" alt="Last Commit (local)" />
-  <img src="https://img.shields.io/badge/C%23-95.0%25-blue?style=flat&logo=csharp&logoColor=white" alt="C# 95%" />
-  <img src="https://img.shields.io/badge/languages-1-blue?style=flat" alt="Languages Count" />
-  <img src="https://img.shields.io/badge/Microservices-4-green?style=flat" alt="Microservices Count" />
-</p>
-
-<p align="center"><em>Built with enterprise-grade tools and technologies:</em></p>
+<p align="center"><em>Nền tảng khám phá ẩm thực hiện đại được xây dựng với kiến trúc Microservices</em></p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/.NET-8.0-512BD4?style=flat&logo=dotnet&logoColor=white" alt=".NET 8" />
-  <img src="https://img.shields.io/badge/C%23-239120?style=flat&logo=csharp&logoColor=white" alt="C#" />
-  <img src="https://img.shields.io/badge/MySQL-8.0-4479A1?style=flat&logo=mysql&logoColor=white" alt="MySQL" />
-  <img src="https://img.shields.io/badge/Entity%20Framework-512BD4?style=flat&logo=dotnet&logoColor=white" alt="Entity Framework" />
+  <img src="https://img.shields.io/badge/C%23-12-239120?style=flat&logo=csharp&logoColor=white" alt="C# 12" />
+  <img src="https://img.shields.io/badge/MongoDB-47A248?style=flat&logo=mongodb&logoColor=white" alt="MongoDB" />
+  <img src="https://img.shields.io/badge/SQLite-003B57?style=flat&logo=sqlite&logoColor=white" alt="SQLite" />
   <img src="https://img.shields.io/badge/Docker-2496ED?style=flat&logo=docker&logoColor=white" alt="Docker" />
   <img src="https://img.shields.io/badge/YARP-512BD4?style=flat&logo=dotnet&logoColor=white" alt="YARP" />
-  <img src="https://img.shields.io/badge/RabbitMQ-FF6600?style=flat&logo=rabbitmq&logoColor=white" alt="RabbitMQ" />
-  <img src="https://img.shields.io/badge/Redis-DC382D?style=flat&logo=redis&logoColor=white" alt="Redis" />
   <img src="https://img.shields.io/badge/JWT-000000?style=flat&logo=jsonwebtokens&logoColor=white" alt="JWT" />
-  <img src="https://img.shields.io/badge/Swagger-85EA2D?style=flat&logo=swagger&logoColor=black" alt="Swagger" />
-  <img src="https://img.shields.io/badge/Serilog-1C1C1C?style=flat&logo=serilog&logoColor=white" alt="Serilog" />
   <img src="https://img.shields.io/badge/Gemini%20AI-4285F4?style=flat&logo=google&logoColor=white" alt="Gemini AI" />
 </p>
 
-## Table of Contents
+## 📋 Mục lục
 
-- [Overview](#overview)
-- [Features](#features)
-- [Architecture](#architecture)
-- [Quick Start](#quick-start)
-- [API Documentation](#api-documentation)
-- [Database Schema](#database-schema)
-- [Development](#development)
-- [Monitoring](#monitoring)
-- [Contributing](#contributing)
-- [License](#license)
-
----
-
-## Overview
-
-**Mumii** is a modern food discovery and social platform built with microservices architecture, empowering users to explore culinary experiences through intelligent recommendations and community sharing.
-
-### Key Capabilities
-- **Restaurant Discovery**: Location-based search with advanced filtering
-- **Social Sharing**: Mood-driven food posts with community engagement  
-- **AI-Powered Suggestions**: Gemini AI integration for personalized recommendations
-- **Real-time Interactions**: Comments, reactions, and social features
-
-## Features
-
-### Core Services
-- **Authentication Service**: JWT-based security with role management
-- **Discovery Service**: Restaurant search, location services, and ratings
-- **Social Service**: Posts, comments, reactions with mood tracking
-- **AI Service**: Gemini AI chat for food recommendations and image analysis
-
-### Technical Features
-- **Microservices Architecture**: Clean separation of concerns
-- **API-First Design**: Comprehensive OpenAPI/Swagger documentation
-- **Event-Driven**: Asynchronous messaging with RabbitMQ
-- **Containerized**: Docker & Docker Compose for easy deployment
-- **Scalable**: Designed for horizontal scaling and high availability
-
-### Tech Stack
-```
-Backend:      .NET 8, ASP.NET Core, Entity Framework Core
-Database:     MySQL 8.0 with JSON support
-Authentication: JWT Bearer Token with RS256
-Messaging:    RabbitMQ for event-driven communication
-Caching:      Redis for performance optimization
-API Gateway:  YARP (Yet Another Reverse Proxy)
-AI Integration: Google Gemini AI for intelligent features
-Containerization: Docker & Docker Compose
-Monitoring:   Serilog structured logging
-Documentation: OpenAPI/Swagger specifications
-```
+- [Tổng quan dự án](#-tổng-quan-dự-án)
+- [Tính năng chính](#-tính-năng-chính)
+- [Kiến trúc hệ thống](#-kiến-trúc-hệ-thống)
+- [Công nghệ sử dụng](#-công-nghệ-sử-dụng)
+- [Yêu cầu hệ thống](#-yêu-cầu-hệ-thống)
+- [Hướng dẫn cài đặt](#-hướng-dẫn-cài-đặt)
+- [Hướng dẫn cấu hình](#-hướng-dẫn-cấu-hình)
+- [Hướng dẫn chạy Backend](#-hướng-dẫn-chạy-backend)
+- [Hướng dẫn sử dụng API](#-hướng-dẫn-sử-dụng-api)
+- [Cấu trúc dự án](#-cấu-trúc-dự-án)
+- [Tài liệu tham khảo](#-tài-liệu-tham-khảo)
+- [Troubleshooting](#-troubleshooting)
+- [Đóng góp](#-đóng-góp)
 
 ---
 
-## Architecture
+## 🎯 Tổng quan dự án
 
-```
-Mumii Microservices Architecture
+**Mumii App Food** là một nền tảng khám phá ẩm thực và mạng xã hội hiện đại, được xây dựng với kiến trúc **Microservices** và **Clean Architecture**. Dự án cho phép người dùng khám phá các nhà hàng, chia sẻ trải nghiệm ẩm thực, và nhận gợi ý thông minh từ AI.
 
-Flutter App
-    ↓ HTTP/REST
-API Gateway (YARP) :8080
-    ↓
-┌─────────────────────────────────────────┐
-│  Auth Service :8081                   │  ← JWT, Account Management
-├─────────────────────────────────────────┤ 
-│  Discovery Service :8082           │  ← Restaurant Search & Location
-├─────────────────────────────────────────┤
-│  Social Service :8083                 │  ← Posts, Comments, Reactions
-└─────────────────────────────────────────┘
-    ↓
-MySQL (3 databases: auth, discovery, social)
-RabbitMQ (async events)
-Redis (caching)
-```
-
-### Core Services
-
-| Service | Port | Chức năng | Database |
-|---------|------|-----------|----------|
-| **Auth** | 8081 | Authentication, User Management | `mumii_auth` |
-| **Discovery** | 8082 | Restaurant Search, Location Services | `mumii_discovery` |
-| **Social** | 8083 | Posts, Comments, Reactions | `mumii_social` |
-| **AI** | 8084 | Gemini AI Chat, Food Suggestions | - |
-| **Gateway** | 8080 | API Gateway, Load Balancing | - |
+### Khả năng chính
+- 🔍 **Khám phá nhà hàng**: Tìm kiếm theo vị trí, bộ lọc nâng cao
+- 📱 **Mạng xã hội**: Chia sẻ bài đăng, tương tác với cộng đồng
+- 🤖 **Gợi ý AI**: Tích hợp Google Gemini AI cho gợi ý cá nhân hóa
+- 💬 **Tương tác thời gian thực**: Bình luận, phản ứng, theo dõi
 
 ---
 
-## Quick Start
+## ✨ Tính năng chính
 
-### **Requirements**
-- Docker & Docker Compose
-- .NET 8 SDK (optional, cho development)
-- Git
+### 🔐 Authentication Service (Port 8081)
+- Đăng ký và đăng nhập người dùng
+- Xác thực JWT với phân quyền theo vai trò (User/Admin)
+- Quản lý profile và thông tin tài khoản
+- Xác thực OAuth (Google) - tùy chọn
+- Gửi email xác thực và thông báo
 
-### **1. Clone Repository**
+### 🏪 Discovery Service (Port 8082)
+- Quản lý thông tin nhà hàng (CRUD)
+- Tìm kiếm nhà hàng theo từ khóa, vị trí
+- Tìm kiếm theo khoảng cách địa lý (Geolocation)
+- Hệ thống đánh giá và review
+- Quản lý favorite/đánh dấu nhà hàng yêu thích
+
+### 📝 Social Service (Port 8083)
+- Tạo và quản lý bài đăng (Posts) với mood tracking
+- Hệ thống bình luận và reply
+- Reactions (Like, Love, Wow)
+- Feed cá nhân hóa
+- Tương tác giữa người dùng
+
+### 🤖 AI Service (Port 8084)
+- Chat với AI về ẩm thực
+- Gợi ý món ăn theo tâm trạng (mood)
+- Phân tích hình ảnh món ăn
+- Gợi ý nhà hàng thông minh
+- Tích hợp Google Gemini AI
+
+### 🌐 API Gateway (Port 8080)
+- Cổng vào duy nhất cho tất cả client
+- Load balancing và routing
+- Centralized Swagger UI
+- Health checks và monitoring
+
+---
+
+## 🏛️ Kiến trúc hệ thống
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Client Applications                      │
+│              (Flutter Mobile App / Web App)                 │
+└──────────────────────────┬──────────────────────────────────┘
+                           │ HTTP/REST
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│              🌐 API Gateway (YARP) :8080                     │
+│         - Routing & Load Balancing                           │
+│         - Centralized Swagger UI                            │
+│         - Health Checks                                      │
+└───┬──────────┬──────────┬──────────┬────────────────────────┘
+    │          │          │          │
+    │          │          │          │
+    ▼          ▼          ▼          ▼
+┌────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐
+│ Auth   │ │Discovery │ │ Social   │ │   AI     │
+│ :8081  │ │  :8082   │ │  :8083   │ │  :8084   │
+└───┬────┘ └────┬─────┘ └────┬─────┘ └────┬─────┘
+    │          │             │             │
+    │          │             │             │
+    ▼          ▼             ▼             ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    Infrastructure Layer                      │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐                 │
+│  │ MongoDB  │  │ RabbitMQ │  │  Redis   │                 │
+│  │ (3 DBs)  │  │ (Events) │  │ (Cache)  │                 │
+│  └──────────┘  └──────────┘  └──────────┘                 │
+│  mumii_auth                                                  │
+│  mumii_discovery                                             │
+│  mumii_social                                                │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Clean Architecture Layers
+
+Mỗi service tuân theo **Clean Architecture** với 3 layers:
+
+```
+Mumii.{Service}/
+├── 📁 Api/              # API Layer (Controllers, Program.cs)
+├── 📁 Domain/           # Domain Layer (Entities, Interfaces)
+└── 📁 Infrastructure/   # Infrastructure Layer (Repositories, Services)
+```
+
+**Dependency Flow**: Api → Domain ← Infrastructure  
+**Nguyên tắc**: Domain không phụ thuộc vào bất kỳ framework nào
+
+### Core Services Overview
+
+| Service | Port | Database | Chức năng chính |
+|---------|------|----------|-----------------|
+| **Auth** | 8081 | `mumii_auth` | Authentication, User Management, Profile |
+| **Discovery** | 8082 | `mumii_discovery` | Restaurant Search, Location Services |
+| **Social** | 8083 | `mumii_social` | Posts, Comments, Reactions |
+| **AI** | 8084 | - | Gemini AI Integration |
+| **Gateway** | 8080 | - | API Routing, Load Balancing |
+
+---
+
+## 🛠️ Công nghệ sử dụng
+
+### Backend Stack
+- **.NET 8 (LTS)** - Framework chính
+- **C# 12** - Ngôn ngữ lập trình
+- **ASP.NET Core 8** - Web framework
+- **Entity Framework Core 8** - ORM
+
+### Database
+- **MongoDB** - Database chính (Production)
+- **SQLite** - Database cho development nhanh
+- **MySQL 8.0** - Tùy chọn (qua Docker)
+
+### Infrastructure
+- **Docker & Docker Compose** - Containerization
+- **YARP (Yet Another Reverse Proxy)** - API Gateway
+- **RabbitMQ** - Message Queue (tương lai)
+- **Redis** - Caching (tương lai)
+
+### Authentication & Security
+- **JWT (JSON Web Tokens)** - Authentication
+- **BCrypt** - Password hashing
+- **OAuth 2.0** - Social login (tùy chọn)
+
+### AI Integration
+- **Google Gemini AI** - AI chat và gợi ý
+
+### Development Tools
+- **Swagger/OpenAPI** - API Documentation
+- **Serilog** - Structured Logging
+- **Central Package Management** - NuGet package management
+
+---
+
+## 💻 Yêu cầu hệ thống
+
+### Bắt buộc
+- ✅ **.NET 8 SDK** - [Download](https://dotnet.microsoft.com/download/dotnet/8.0)
+- ✅ **Docker Desktop** (tùy chọn, cho MySQL/RabbitMQ) - [Download](https://www.docker.com/products/docker-desktop/)
+- ✅ **Git** - [Download](https://git-scm.com/downloads)
+
+### Tùy chọn (cho MongoDB)
+- 🔧 **MongoDB Atlas Account** (miễn phí) hoặc MongoDB local
+- 🔧 **Google Gemini API Key** - [Lấy từ Google AI Studio](https://makersuite.google.com/app/apikey)
+
+### Development Tools
+- 📝 **Visual Studio 2022** hoặc **VS Code** với C# extension
+- 📝 **Postman** hoặc **Insomnia** - Để test API
+
+---
+
+## 📥 Hướng dẫn cài đặt
+
+### Bước 1: Clone Repository
+
 ```bash
+# Clone repository từ GitHub
 git clone https://github.com/your-username/mumii-microservices.git
+
+# Di chuyển vào thư mục dự án
 cd mumii-microservices
 ```
 
-### **2. Start Infrastructure**
+### Bước 2: Kiểm tra .NET SDK
 
-#### **Option A: SQLite (Recommended for Development)**
 ```bash
-# Không cần Docker! Chạy ngay lập tức
-# Windows
-.\scripts\run-sqlite.ps1
+# Kiểm tra phiên bản .NET
+dotnet --version
+# Phải >= 8.0.0
+
+# Restore packages
+dotnet restore
+```
+
+### Bước 3: Verify Solution Build
+
+```bash
+# Build toàn bộ solution để đảm bảo không có lỗi
+dotnet build Mumii.Microservices.sln
+```
+
+---
+
+## ⚙️ Hướng dẫn cấu hình
+
+### 1. Cấu hình Database
+
+Dự án hỗ trợ **2 loại database**:
+
+#### Option A: SQLite (Khuyên dùng cho Development)
+
+**Ưu điểm**: Không cần setup, chạy ngay lập tức
+
+Database files sẽ được tạo tự động trong mỗi service:
+- `src/Services/Auth/Mumii.Auth.Api/auth.db`
+- `src/Services/Discovery/Mumii.Discovery.Api/discovery.db`
+- `src/Services/Social/Mumii.Social.Api/social.db`
+
+**Cấu hình mặc định** (đã có sẵn trong `appsettings.json`):
+```json
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Data Source=auth.db"
+  }
+}
+```
+
+#### Option B: MongoDB (Production)
+
+1. **Tạo MongoDB Atlas Account** (miễn phí):
+   - Truy cập: https://www.mongodb.com/cloud/atlas
+   - Tạo cluster miễn phí
+   - Lấy Connection String
+
+2. **Cấu hình trong `appsettings.json`**:
+
+```json
+{
+  "MongoDB": {
+    "ConnectionString": "mongodb+srv://username:password@cluster.mongodb.net/?retryWrites=true&w=majority",
+    "DatabaseName": "mumii_auth"
+  }
+}
+```
+
+3. **Lặp lại cho các services**:
+   - `Mumii.Auth.Api/appsettings.json` → `mumii_auth`
+   - `Mumii.Discovery.Api/appsettings.json` → `mumii_discovery`
+   - `Mumii.Social.Api/appsettings.json` → `mumii_social`
+
+#### Option C: MySQL (qua Docker)
+
+Nếu muốn dùng MySQL, xem [docs/SETUP.md](docs/SETUP.md)
+
+### 2. Cấu hình Gemini AI
+
+1. **Lấy API Key**:
+   - Truy cập: https://makersuite.google.com/app/apikey
+   - Đăng nhập với Google account
+   - Tạo API key mới
+   - Copy API key
+
+2. **Cấu hình trong `Mumii.AI.Api/appsettings.json`**:
+
+```json
+{
+  "Gemini": {
+    "ApiKey": "YOUR_GEMINI_API_KEY_HERE"
+  }
+}
+```
+
+Hoặc sử dụng **Environment Variable**:
+```bash
+# Windows PowerShell
+$env:Gemini__ApiKey="YOUR_GEMINI_API_KEY_HERE"
 
 # Linux/Mac
+export Gemini__ApiKey="YOUR_GEMINI_API_KEY_HERE"
+```
+
+### 3. Cấu hình JWT (Authentication)
+
+Cấu hình trong `Mumii.Auth.Api/appsettings.json`:
+
+```json
+{
+  "Jwt": {
+    "Issuer": "Mumii",
+    "Audience": "Mumii.Client",
+    "Key": "YOUR_STRONG_SECRET_KEY_HERE_MIN_32_CHARS",
+    "ExpiryHours": 24
+  }
+}
+```
+
+**Lưu ý bảo mật**:
+- Key phải có độ dài tối thiểu 32 ký tự
+- Sử dụng key khác nhau cho Production
+- Không commit key vào Git
+
+### 4. Cấu hình API Gateway
+
+File: `src/ApiGateway/appsettings.json`
+
+```json
+{
+  "ReverseProxy": {
+    "Routes": {
+      "auth-route": {
+        "ClusterId": "auth-cluster",
+        "Match": {
+          "Path": "/api/auth/{**catch-all}"
+        }
+      },
+      "discovery-route": {
+        "ClusterId": "discovery-cluster",
+        "Match": {
+          "Path": "/api/restaurants/{**catch-all}"
+        }
+      },
+      "social-route": {
+        "ClusterId": "social-cluster",
+        "Match": {
+          "Path": "/api/posts/{**catch-all}"
+        }
+      },
+      "ai-route": {
+        "ClusterId": "ai-cluster",
+        "Match": {
+          "Path": "/api/chat/{**catch-all}"
+        }
+      }
+    },
+    "Clusters": {
+      "auth-cluster": {
+        "Destinations": {
+          "destination1": {
+            "Address": "http://localhost:8081"
+          }
+        }
+      },
+      "discovery-cluster": {
+        "Destinations": {
+          "destination1": {
+            "Address": "http://localhost:8082"
+          }
+        }
+      },
+      "social-cluster": {
+        "Destinations": {
+          "destination1": {
+            "Address": "http://localhost:8083"
+          }
+        }
+      },
+      "ai-cluster": {
+        "Destinations": {
+          "destination1": {
+            "Address": "http://localhost:8084"
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+### 5. Environment Variables (Tùy chọn)
+
+Tạo file `.env` trong thư mục root (nếu sử dụng):
+
+```bash
+# Gemini AI
+GEMINI_API_KEY=your_gemini_api_key_here
+
+# MongoDB (nếu dùng)
+MONGODB_CONNECTION_STRING=mongodb+srv://...
+
+# JWT
+JWT_SECRET_KEY=your_jwt_secret_key_here
+
+# MySQL (nếu dùng Docker)
+MYSQL_ROOT_PASSWORD=mumii2024
+RABBITMQ_DEFAULT_USER=admin
+RABBITMQ_DEFAULT_PASS=mumii2024
+```
+
+---
+
+## 🚀 Hướng dẫn chạy Backend
+
+### Phương pháp 1: SQLite (Khuyên dùng - Nhanh nhất)
+
+**Ưu điểm**: Không cần Docker, chạy ngay lập tức
+
+#### Windows PowerShell:
+
+```powershell
+# Chạy script tự động (khởi động tất cả services)
+.\scripts\run-sqlite.ps1
+```
+
+#### Linux/Mac:
+
+```bash
+# Chạy script tự động
+chmod +x scripts/run-sqlite.sh
 ./scripts/run-sqlite.sh
 ```
 
-#### **Option B: MySQL (Production-like)**
-```bash
-# Khởi động database và message queue
-docker-compose up -d mysql rabbitmq redis
+#### Chạy thủ công (từng service):
 
-# Chờ MySQL khởi động hoàn tất (khoảng 30-60 giây)
-docker logs mumii-mysql -f
+Mở **5 terminal windows** và chạy từng service:
+
+```bash
+# Terminal 1: Auth Service
+cd src/Services/Auth/Mumii.Auth.Api
+dotnet run --urls "http://localhost:8081"
+
+# Terminal 2: Discovery Service
+cd src/Services/Discovery/Mumii.Discovery.Api
+dotnet run --urls "http://localhost:8082"
+
+# Terminal 3: Social Service
+cd src/Services/Social/Mumii.Social.Api
+dotnet run --urls "http://localhost:8083"
+
+# Terminal 4: AI Service
+cd src/Services/AI/Mumii.AI.Api
+dotnet run --urls "http://localhost:8084"
+
+# Terminal 5: API Gateway
+cd src/ApiGateway
+dotnet run --urls "http://localhost:8080"
 ```
 
-### **3. Start Services**
+**Lưu ý**: Chờ tất cả services khởi động hoàn tất trước khi test API.
 
-#### **Option A: Docker Compose (Recommended)**
+### Phương pháp 2: Docker Compose (Production-like)
+
+#### Bước 1: Khởi động Infrastructure
+
+```bash
+# Khởi động MySQL, RabbitMQ, Redis
+docker-compose up -d mysql rabbitmq redis
+
+# Chờ MySQL sẵn sàng (30-60 giây)
+docker logs mumii-mysql -f
+# Thấy "ready for connections" là được
+```
+
+#### Bước 2: Khởi động Services
+
 ```bash
 # Khởi động tất cả services
 docker-compose up --build
@@ -161,60 +486,128 @@ docker-compose up --build
 docker-compose up -d --build
 ```
 
-#### **Option B: Local Development**
+#### Bước 3: Kiểm tra Services
+
+```bash
+# Xem logs
+docker-compose logs -f
+
+# Kiểm tra containers
+docker ps
+```
+
+### Phương pháp 3: Chạy Local (Không Docker)
+
+#### Bước 1: Cấu hình Database
+
+Chọn một trong các option:
+- SQLite: Không cần setup gì
+- MongoDB: Cấu hình connection string trong `appsettings.json`
+
+#### Bước 2: Chạy từng Service
+
+Mở 5 terminal windows và chạy:
+
 ```bash
 # Terminal 1: Auth Service
 cd src/Services/Auth/Mumii.Auth.Api
-dotnet run
+dotnet run --urls "http://localhost:8081"
 
-# Terminal 2: Discovery Service  
+# Terminal 2: Discovery Service
 cd src/Services/Discovery/Mumii.Discovery.Api
-dotnet run
+dotnet run --urls "http://localhost:8082"
 
 # Terminal 3: Social Service
 cd src/Services/Social/Mumii.Social.Api
-dotnet run
+dotnet run --urls "http://localhost:8083"
 
-# Terminal 4: API Gateway
+# Terminal 4: AI Service
+cd src/Services/AI/Mumii.AI.Api
+dotnet run --urls "http://localhost:8084"
+
+# Terminal 5: API Gateway
 cd src/ApiGateway
-dotnet run
+dotnet run --urls "http://localhost:8080"
 ```
 
-### **4. Verify Services**
-```bash
-# Health checks
-curl http://localhost:8080/health        # API Gateway
-curl http://localhost:8081/health        # Auth Service
-curl http://localhost:8082/health        # Discovery Service  
-curl http://localhost:8083/health        # Social Service
-curl http://localhost:8084/health        # AI Service
+### Development Mode với Hot Reload
 
-# Service info
-curl http://localhost:8080/              # Gateway info
+Sử dụng `dotnet watch` để tự động reload khi có thay đổi:
+
+```bash
+# Thay vì dotnet run, dùng:
+dotnet watch run --urls "http://localhost:8081"
 ```
 
 ---
 
-## API Documentation
+## ✅ Kiểm tra Services đã chạy thành công
 
-### **Base URLs**
-- **API Gateway**: `http://localhost:8080`
-- **Auth Service**: `http://localhost:8081`
-- **Discovery Service**: `http://localhost:8082`
-- **Social Service**: `http://localhost:8083`
-- **AI Service**: `http://localhost:8084`
+### 1. Health Checks
 
-### **Swagger Documentation**
-- Auth API: http://localhost:8081/swagger
-- Discovery API: http://localhost:8082/swagger
-- Social API: http://localhost:8083/swagger
-- AI API: http://localhost:8084/swagger
-
-### **Quick API Examples**
-
-#### **1. Authentication**
 ```bash
-# Đăng ký tài khoản
+# Kiểm tra tất cả services
+curl http://localhost:8080/health        # API Gateway
+curl http://localhost:8081/health        # Auth Service
+curl http://localhost:8082/health        # Discovery Service
+curl http://localhost:8083/health       # Social Service
+curl http://localhost:8084/health       # AI Service
+```
+
+**Expected Response**: `{"status":"Healthy"}` hoặc tương tự
+
+### 2. Service Info
+
+```bash
+# API Gateway info
+curl http://localhost:8080/
+
+# Response example:
+{
+  "service": "Mumii API Gateway",
+  "version": "1.0.0",
+  "status": "Running",
+  "routes": {
+    "auth": "/api/auth/*",
+    "discovery": "/api/restaurants/*",
+    "social": "/api/posts/*",
+    "ai": "/api/chat/*"
+  }
+}
+```
+
+### 3. Swagger UI
+
+Mở browser và truy cập:
+
+- **Centralized Swagger**: http://localhost:8080
+  - Chứa tất cả API endpoints của các services
+- **Auth Service**: http://localhost:8081/swagger
+- **Discovery Service**: http://localhost:8082/swagger
+- **Social Service**: http://localhost:8083/swagger
+- **AI Service**: http://localhost:8084/swagger
+
+---
+
+## 📚 Hướng dẫn sử dụng API
+
+### Base URLs
+
+| Service | Base URL | Swagger UI |
+|---------|----------|------------|
+| **API Gateway** | `http://localhost:8080` | http://localhost:8080 |
+| **Auth Service** | `http://localhost:8081` | http://localhost:8081/swagger |
+| **Discovery Service** | `http://localhost:8082` | http://localhost:8082/swagger |
+| **Social Service** | `http://localhost:8083` | http://localhost:8083/swagger |
+| **AI Service** | `http://localhost:8084` | http://localhost:8084/swagger |
+
+**Khuyến nghị**: Sử dụng **API Gateway** (`http://localhost:8080`) cho tất cả requests.
+
+### Authentication Flow
+
+#### 1. Đăng ký tài khoản
+
+```bash
 curl -X POST http://localhost:8080/api/auth/register \
   -H "Content-Type: application/json" \
   -d '{
@@ -222,64 +615,141 @@ curl -X POST http://localhost:8080/api/auth/register \
     "password": "password123",
     "displayName": "John Doe"
   }'
+```
 
-# Đăng nhập
+**Response**:
+```json
+{
+  "success": true,
+  "message": "Đăng ký thành công",
+  "data": {
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "refreshToken": "refresh_token_here",
+    "user": {
+      "id": 1,
+      "email": "user@example.com",
+      "displayName": "John Doe",
+      "role": "User"
+    }
+  }
+}
+```
+
+#### 2. Đăng nhập
+
+```bash
 curl -X POST http://localhost:8080/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{
-    "email": "user@example.com", 
+    "email": "user@example.com",
     "password": "password123"
   }'
-
-# Response sẽ chứa access_token để sử dụng cho các API khác
 ```
 
-#### **2. Restaurant Discovery**
-```bash
-# Lấy danh sách nhà hàng
-curl http://localhost:8080/api/restaurants
+**Lưu `accessToken` từ response để dùng cho các API protected.**
 
-# Tìm kiếm nhà hàng theo vị trí
+#### 3. Lấy Profile (Protected Endpoint)
+
+```bash
+curl -X GET http://localhost:8080/api/auth/profile \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN_HERE"
+```
+
+### Restaurant Discovery APIs
+
+#### 1. Lấy danh sách nhà hàng
+
+```bash
+curl http://localhost:8080/api/restaurants?page=1&pageSize=10
+```
+
+#### 2. Tìm kiếm nhà hàng
+
+```bash
+curl "http://localhost:8080/api/restaurants/search?q=phở&page=1&pageSize=10"
+```
+
+#### 3. Tìm nhà hàng gần vị trí
+
+```bash
 curl "http://localhost:8080/api/restaurants/nearby?lat=21.0285&lng=105.8542&radiusKm=5"
-
-# Tìm kiếm theo từ khóa
-curl "http://localhost:8080/api/restaurants/search?q=phở"
 ```
 
-#### **3. Social Posts**
+#### 4. Lấy chi tiết nhà hàng
+
 ```bash
-# Tạo bài đăng (cần JWT token)
+curl http://localhost:8080/api/restaurants/1
+```
+
+### Social APIs
+
+#### 1. Tạo bài đăng (Protected)
+
+```bash
 curl -X POST http://localhost:8080/api/posts \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN_HERE" \
   -d '{
     "content": "Hôm nay ăn phở ngon quá! 🍜",
     "mood": "SATISFIED",
     "imageUrls": ["https://example.com/pho.jpg"]
   }'
-
-# Lấy feed posts
-curl http://localhost:8080/api/posts
 ```
 
-#### **4. AI Chat với Gemini**
+#### 2. Lấy feed posts
+
 ```bash
-# Chat về đồ ăn
+curl http://localhost:8080/api/posts?page=1&pageSize=20
+```
+
+#### 3. Thêm bình luận (Protected)
+
+```bash
+curl -X POST http://localhost:8080/api/posts/1/comments \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN_HERE" \
+  -d '{
+    "content": "Nhìn ngon quá!"
+  }'
+```
+
+#### 4. Reaction (Like/Love/Wow) (Protected)
+
+```bash
+curl -X POST http://localhost:8080/api/posts/1/react \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN_HERE" \
+  -d '{
+    "reactionType": "LIKE"
+  }'
+```
+
+### AI Service APIs
+
+#### 1. Chat về đồ ăn
+
+```bash
 curl -X POST http://localhost:8080/api/chat/food \
   -H "Content-Type: application/json" \
   -d '{
     "message": "Hôm nay tôi muốn ăn gì đó ngon và healthy"
   }'
+```
 
-# Gợi ý theo mood
+#### 2. Gợi ý theo mood
+
+```bash
 curl -X POST http://localhost:8080/api/chat/suggest-by-mood \
   -H "Content-Type: application/json" \
   -d '{
     "mood": "HAPPY",
     "location": "Hà Nội"
   }'
+```
 
-# Phân tích hình ảnh đồ ăn
+#### 3. Phân tích hình ảnh món ăn
+
+```bash
 curl -X POST http://localhost:8080/api/chat/analyze-image \
   -H "Content-Type: application/json" \
   -d '{
@@ -289,285 +759,280 @@ curl -X POST http://localhost:8080/api/chat/analyze-image \
 
 ---
 
-## Database Schema
+## 📁 Cấu trúc dự án
 
-### **Auth Database (`mumii_auth`)**
-```sql
--- Accounts table
-accounts (
-  id VARCHAR(36) PRIMARY KEY,
-  email VARCHAR(255) UNIQUE,
-  password_hash VARCHAR(255),
-  display_name VARCHAR(100),
-  avatar_url VARCHAR(500),
-  role ENUM('User', 'Admin'),
-  is_active BOOLEAN,
-  created_at TIMESTAMP,
-  updated_at TIMESTAMP
-)
-```
-
-### **Discovery Database (`mumii_discovery`)**
-```sql
--- Restaurants table
-restaurants (
-  id VARCHAR(36) PRIMARY KEY,
-  name VARCHAR(255),
-  address TEXT,
-  latitude DECIMAL(10,8),
-  longitude DECIMAL(11,8),
-  region VARCHAR(100),
-  avg_price DECIMAL(10,2),
-  rating DECIMAL(2,1),
-  description TEXT,
-  image_urls JSON,
-  tags JSON,
-  created_at TIMESTAMP,
-  is_deleted BOOLEAN
-)
-```
-
-### **Social Database (`mumii_social`)**
-```sql
--- Posts table
-posts (
-  id VARCHAR(36) PRIMARY KEY,
-  account_id VARCHAR(36),
-  content TEXT,
-  mood VARCHAR(50),
-  image_urls JSON,
-  restaurant_id VARCHAR(36),
-  reaction_count INT,
-  comment_count INT,
-  created_at TIMESTAMP,
-  is_deleted BOOLEAN
-)
-
--- Comments & Reactions tables...
-```
-
----
-
-## Development
-
-### **Project Structure**
 ```
 Mumii.Microservices/
-├── src/
-│   ├── ApiGateway/                    # YARP API Gateway
-│   ├── Services/
-│   │   ├── Auth/                      # 🔐 Authentication Service
-│   │   │   ├── Mumii.Auth.Api/        # → Web API
-│   │   │   ├── Mumii.Auth.Domain/     # → Domain Logic
-│   │   │   └── Mumii.Auth.Infrastructure/ # → Data Access
-│   │   ├── Discovery/                 # 🏪 Restaurant Discovery
-│   │   └── Social/                    # 📝 Social Features
-│   └── Shared/
-│       └── Common/                    # → DTOs, Events, Constants
-├── docker/
-├── scripts/                           # → Database init scripts
-└── README.md
+├── 📁 src/
+│   ├── 📁 ApiGateway/                  # 🌐 API Gateway (YARP)
+│   │   ├── Program.cs
+│   │   ├── appsettings.json
+│   │   └── Dockerfile
+│   │
+│   ├── 📁 Services/
+│   │   ├── 📁 Auth/                     # 🔐 Authentication Service
+│   │   │   ├── Mumii.Auth.Api/          # → API Layer
+│   │   │   │   ├── Controllers/
+│   │   │   │   │   ├── AccountsController.cs
+│   │   │   │   │   ├── AuthController.cs
+│   │   │   │   │   └── ...
+│   │   │   │   ├── Program.cs
+│   │   │   │   └── appsettings.json
+│   │   │   ├── Mumii.Auth.Domain/       # → Domain Layer
+│   │   │   │   ├── Entities/
+│   │   │   │   │   ├── Account.cs
+│   │   │   │   │   └── ...
+│   │   │   │   └── Interfaces/
+│   │   │   │       ├── IAccountRepository.cs
+│   │   │   │       └── ...
+│   │   │   └── Mumii.Auth.Infrastructure/ # → Infrastructure Layer
+│   │   │       ├── Repositories/
+│   │   │       ├── Services/
+│   │   │       │   ├── JwtService.cs
+│   │   │       │   └── ...
+│   │   │       └── Data/
+│   │   │
+│   │   ├── 📁 Discovery/                # 🏪 Restaurant Discovery Service
+│   │   │   ├── Mumii.Discovery.Api/
+│   │   │   ├── Mumii.Discovery.Domain/
+│   │   │   └── Mumii.Discovery.Infrastructure/
+│   │   │
+│   │   ├── 📁 Social/                    # 📝 Social Service
+│   │   │   ├── Mumii.Social.Api/
+│   │   │   ├── Mumii.Social.Domain/
+│   │   │   └── Mumii.Social.Infrastructure/
+│   │   │
+│   │   └── 📁 AI/                        # 🤖 AI Service
+│   │       ├── Mumii.AI.Api/
+│   │       ├── Mumii.AI.Domain/
+│   │       └── Mumii.AI.Infrastructure/
+│   │
+│   └── 📁 Shared/
+│       └── 📁 Common/                    # 📦 Shared Library
+│           ├── DTOs/
+│           │   ├── AuthDTOs.cs
+│           │   ├── DiscoveryDTOs.cs
+│           │   └── SocialDTOs.cs
+│           ├── Models/
+│           │   └── ApiResponse.cs
+│           ├── Enums/
+│           ├── Constants/
+│           └── Events/
+│
+├── 📁 scripts/                           # 🔧 Utility Scripts
+│   ├── run-sqlite.ps1                    # Chạy với SQLite (Windows)
+│   ├── run-sqlite.sh                     # Chạy với SQLite (Linux/Mac)
+│   └── stop-sqlite.ps1                   # Dừng services
+│
+├── 📁 docs/                              # 📚 Documentation
+│   ├── SETUP.md                          # Chi tiết setup
+│   ├── CODEBASE.md                       # Chi tiết codebase
+│   ├── API_DOCUMENTATION.md              # Tài liệu API
+│   └── QUICK_START.md                    # Hướng dẫn nhanh
+│
+├── 📄 docker-compose.yml                  # Docker Compose config
+├── 📄 Mumii.Microservices.sln            # Solution file
+├── 📄 Directory.Packages.props           # Central Package Management
+├── 📄 AGENTS.md                          # Quy tắc cho AI Agent
+└── 📄 README.md                          # File này
 ```
 
-### **Development Commands**
+### Dependency Graph
 
-#### **Database Operations**
-```bash
-# Tạo migration mới (ví dụ Auth service)
-cd src/Services/Auth/Mumii.Auth.Infrastructure
-dotnet ef migrations add InitialCreate -s ../Mumii.Auth.Api
-
-# Apply migrations
-dotnet ef database update -s ../Mumii.Auth.Api
 ```
-
-#### **Docker Operations**
-```bash
-# Build specific service
-docker-compose build auth-service
-
-# View logs
-docker-compose logs -f auth-service
-
-# Restart services
-docker-compose restart
-
-# Clean up
-docker-compose down -v  # Remove volumes too
-```
-
-#### **Testing**
-```bash
-# Run all tests
-dotnet test
-
-# Run specific project tests
-dotnet test src/Services/Auth/Mumii.Auth.Tests/
-```
-
-### **Environment Variables**
-
-#### **Auth Service**
-```env
-ConnectionStrings__DefaultConnection=Server=localhost;Database=mumii_auth;Uid=root;Pwd=mumii2024;
-JWT_SECRET_KEY=your_jwt_secret_key_here
-Jwt__Issuer=Mumii
-Jwt__Audience=Mumii.Client
-Jwt__ExpiryHours=24
-```
-
-#### **Discovery Service**
-```env
-ConnectionStrings__DefaultConnection=Server=localhost;Database=mumii_discovery;Uid=root;Pwd=mumii2024;
-```
-
-#### **Social Service**
-```env
-ConnectionStrings__DefaultConnection=Server=localhost;Database=mumii_social;Uid=root;Pwd=mumii2024;
+ApiGateway
+    ↓
+┌───┴─────────────────────────────────────┐
+│                                         │
+Auth.Api    Discovery.Api    Social.Api   AI.Api
+    ↓              ↓              ↓           ↓
+┌───┴───┐    ┌────┴────┐    ┌────┴────┐      │
+│Domain │    │ Domain  │    │ Domain  │      │
+└───┬───┘    └────┬────┘    └────┬────┘      │
+    │             │              │           │
+┌───┴─────────────┴──────────────┴──────────┘
+│         Infrastructure                    │
+└───────────────────────────────────────────┘
+            ↑
+    Shared.Common
 ```
 
 ---
 
-## Monitoring
+## 📖 Tài liệu tham khảo
 
-### **Health Checks**
-Tất cả services đều có health check endpoints:
-- `/health` - Overall health
-- `/health/ready` - Readiness probe
-- `/health/live` - Liveness probe
-
-### **Management UIs**
-- **RabbitMQ Management**: http://localhost:15672
-  - Username: `admin`
-  - Password: `mumii2024`
-
-### **Logging**
-- Sử dụng **Serilog** cho structured logging
-- Logs được output ra console với format dễ đọc
-- Production: có thể extend để ghi vào file hoặc ELK stack
+- 📄 [Setup Guide](docs/SETUP.md) - Hướng dẫn setup chi tiết
+- 📄 [Codebase Documentation](docs/CODEBASE.md) - Chi tiết về codebase
+- 📄 [API Documentation](docs/API_DOCUMENTATION.md) - Tài liệu API đầy đủ
+- 📄 [Quick Start](docs/QUICK_START.md) - Hướng dẫn nhanh 5 phút
+- 📄 [AGENTS.md](AGENTS.md) - Quy tắc và kiến trúc cho AI Agent
 
 ---
 
-## Deployment
+## 🔧 Troubleshooting
 
-### **Production Environment**
+### 1. Lỗi Port đã được sử dụng
 
-#### **Docker Compose Production**
+**Triệu chứng**: `Address already in use` hoặc `Port is already in use`
+
+**Giải pháp**:
 ```bash
-# Sử dụng production compose file
-docker-compose -f docker-compose.prod.yml up -d
+# Windows
+netstat -ano | findstr :8080
+taskkill /PID <PID> /F
 
-# Scale services
-docker-compose -f docker-compose.prod.yml up -d --scale auth-service=2
+# Linux/Mac
+lsof -i :8080
+kill -9 <PID>
 ```
 
-#### **Kubernetes (Future)**
-```bash
-# Deploy to Kubernetes cluster
-kubectl apply -f k8s/
+### 2. Database không kết nối được
 
-# Check deployment status
-kubectl get pods -n mumii
+**Triệu chứng**: `Unable to connect to database`
+
+**Giải pháp SQLite**:
+- Kiểm tra file database có tồn tại
+- Kiểm tra quyền ghi file trong thư mục service
+- Xóa file `.db` cũ và chạy lại để tạo mới
+
+**Giải pháp MongoDB**:
+- Kiểm tra connection string trong `appsettings.json`
+- Kiểm tra network có kết nối internet (nếu dùng Atlas)
+- Kiểm tra IP whitelist trong MongoDB Atlas
+
+### 3. Gemini API không hoạt động
+
+**Triệu chứng**: `401 Unauthorized` hoặc `Invalid API key`
+
+**Giải pháp**:
+- Kiểm tra API key trong `Mumii.AI.Api/appsettings.json`
+- Đảm bảo API key hợp lệ từ [Google AI Studio](https://makersuite.google.com/app/apikey)
+- Kiểm tra quota của API key
+
+### 4. JWT Token không hợp lệ
+
+**Triệu chứng**: `401 Unauthorized` khi gọi API protected
+
+**Giải pháp**:
+- Đảm bảo token được lấy từ `/api/auth/login`
+- Kiểm tra header: `Authorization: Bearer <token>`
+- Kiểm tra token chưa hết hạn
+- Đăng nhập lại để lấy token mới
+
+### 5. Services không khởi động được
+
+**Triệu chứng**: Services crash ngay sau khi start
+
+**Giải pháp**:
+```bash
+# Kiểm tra logs
+# Windows PowerShell
+Get-Content -Path "logs\*.log" -Tail 50
+
+# Linux/Mac
+tail -f logs/*.log
+
+# Kiểm tra cấu hình
+# Xem lại appsettings.json của service bị lỗi
 ```
 
-### **CI/CD Pipeline**
-Có thể tích hợp với:
-- **GitHub Actions** cho automated testing & deployment
-- **Azure DevOps** cho enterprise scenarios
-- **Jenkins** cho on-premise setups
+### 6. Package conflicts (NU1605, NU1903)
+
+**Triệu chứng**: Build lỗi với NuGet packages
+
+**Giải pháp**:
+```bash
+# Clear NuGet cache
+dotnet nuget locals all --clear
+
+# Clean build
+dotnet clean
+dotnet restore
+dotnet build
+
+# Nếu vẫn lỗi, xóa bin/obj
+find . -type d -name "bin" -exec rm -rf {} +
+find . -type d -name "obj" -exec rm -rf {} +
+dotnet restore
+dotnet build
+```
+
+### 7. Docker containers không start
+
+**Triệu chứng**: Containers exit ngay sau khi start
+
+**Giải pháp**:
+```bash
+# Xem logs
+docker logs mumii-auth-service
+docker logs mumii-mysql
+
+# Kiểm tra Docker đang chạy
+docker ps -a
+
+# Restart Docker Desktop (Windows/Mac)
+# Hoặc
+sudo systemctl restart docker  # Linux
+
+# Clean và rebuild
+docker-compose down -v
+docker-compose up --build
+```
 
 ---
 
-## Roadmap
+## 🤝 Đóng góp
 
-### Phase 1 - Core Features (Completed)
-- [x] Authentication với JWT
-- [x] Discovery Service (restaurants search)
-- [x] Social Service (posts, comments, reactions)
-- [x] AI Service với Gemini integration
-- [x] API Gateway với YARP
-- [x] Docker containerization
-- [x] Central Package Management
-- [x] NuGet conflicts resolution
-
-### Phase 2 - Enhanced Features
-- [ ] Flutter mobile app
-- [ ] Image upload service
-- [ ] Push notifications
-- [ ] User profile management
-- [ ] Restaurant rating system
-
-### Phase 3 - AI & Analytics
-- [ ] AI recommendation engine
-- [ ] User behavior analytics
-- [ ] Advanced search với ML
-- [ ] Personalized feed algorithm
-
-### Phase 4 - Scale & Performance
-- [ ] Event Sourcing
-- [ ] CQRS pattern
-- [ ] Distributed caching
-- [ ] Kubernetes deployment
-- [ ] Monitoring với Prometheus/Grafana
-
----
-
-## Contributing
-
-Chúng tôi rất hoan nghênh các contributions! 
+Chúng tôi rất hoan nghênh các contributions!
 
 ### Development Workflow
-1. Fork repository
-2. Tạo feature branch: `git checkout -b feature/amazing-feature`
-3. Commit changes: `git commit -m 'Add amazing feature'`
-4. Push to branch: `git push origin feature/amazing-feature`
-5. Open Pull Request
+
+1. **Fork repository**
+2. **Tạo feature branch**: `git checkout -b feature/amazing-feature`
+3. **Commit changes**: `git commit -m 'Add amazing feature'`
+4. **Push to branch**: `git push origin feature/amazing-feature`
+5. **Open Pull Request**
 
 ### Coding Standards
+
 - Sử dụng **Clean Architecture** patterns
 - Tuân thủ **SOLID principles**
 - Code coverage tối thiểu 80%
 - Sử dụng **conventional commits**
+- Đọc [AGENTS.md](AGENTS.md) để hiểu quy tắc code
 
-### Issue Templates
-Khi tạo issue, vui lòng sử dụng các templates:
-- Bug Report
-- Feature Request
-- Documentation
-- Question
+### Issue Reporting
 
----
-
-## Support & Contact
-
-- **Email**: support@mumii.com
-- **Discord**: [Mumii Community](https://discord.gg/mumii)
-- **Issues**: [GitHub Issues](https://github.com/your-username/mumii-microservices/issues)
-- **Wiki**: [Project Wiki](https://github.com/your-username/mumii-microservices/wiki)
+Khi tạo issue, vui lòng cung cấp:
+- Mô tả vấn đề rõ ràng
+- Steps to reproduce
+- Expected behavior
+- Actual behavior
+- Environment (OS, .NET version, etc.)
 
 ---
 
-## License
+## 📝 License
 
-Dự án này sử dụng MIT License. Xem file [LICENSE](LICENSE) để biết thêm chi tiết.
+Dự án này sử dụng **MIT License**. Xem file [LICENSE](LICENSE) để biết thêm chi tiết.
 
 ---
 
-## Acknowledgments
+## 🙏 Acknowledgments
 
 - **Microsoft** cho .NET 8 và Entity Framework Core
 - **Docker** cho containerization platform
-- **MySQL** cho reliable database
-- **RabbitMQ** cho message queuing
+- **MongoDB** cho database solution
+- **Google** cho Gemini AI
 - **Community** cho các open source packages tuyệt vời
 
 ---
 
 <div align="center">
 
-**Nếu project này hữu ích, hãy cho chúng tôi một star!**
+**⭐ Nếu project này hữu ích, hãy cho chúng tôi một star! ⭐**
 
-Made with love by **Mumii Team**
+Made with ❤️ by **Mumii Team**
 
 [Back to top](#top)
 
